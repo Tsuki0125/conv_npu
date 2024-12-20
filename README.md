@@ -3,6 +3,7 @@
 - doc        项目文档
 - sim        RTL仿真代码，用于验证
 - src         项目源码
+- scripts   脚本
 
 
 

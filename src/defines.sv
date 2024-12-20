@@ -9,3 +9,16 @@
 // pe config
 `define PE_NUM 32
 
+// BRAM MEMORY MAP
+// F:FEATURE K:KERNEL
+`define FRAM_ADDR_WIDTH 17
+`define FRAM_ADDR_RANGE 16:0
+`define FRAM_BANK_NUM 4
+
+`define KRAM_ADDR_WIDTH 18
+`define KRAM_ADDR_RANGE 17:0
+`define KRAM_BANK_NUM 64
+
+
+
+
