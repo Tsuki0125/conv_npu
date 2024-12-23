@@ -6,6 +6,11 @@
 `define ADDR_WIDTH 32
 `define ADDR_RANGE 31:0
 
+// CSR addr width
+`define CSR_ADDR_WIDTH 6
+
+
+
 // pe config
 `define PE_NUM 32
 
