@@ -8,6 +8,7 @@ module pe (
     input flush,
     input out_en,
     input calc_bias,
+    input calc_relu,
     //////////////////
     output reg signed [`DATA_RANGE] result_r,
     output reg out_valid_r,
@@ -24,33 +25,33 @@ always @* begin
     result = '0;
     out_valid = '0;
     illegal_uop = '0;
-    casez ({flush, in_valid, calc_bias, out_en})
-        4'b1???: begin
+    casez ({flush, in_valid, calc_bias, calc_relu, out_en})
+        5'b1???: begin
             result = '0;
             out_valid = '0; 
         end 
-        4'b0000: begin
+        5'b0000: begin
             result = result_r;
             out_valid = out_valid_r;
         end 
-        4'b0001: begin
+        5'b0001: begin
             result = result_r;
             out_valid = '1;
         end
-        4'b001?: begin
+        5'b001?: begin
             illegal_uop = '1;
         end
-        4'b0100: begin
+        5'b0100: begin
             result = result_r + x * weight;
         end
-        4'b0101: begin
+        5'b0101: begin
             result = result_r + x * weight;
             out_valid = '1;
         end
-        4'b0110: begin
+        5'b0110: begin
             result = result_r + weight;
         end
-        4'b0111: begin
+        5'b0111: begin
             result = result_r + weight;
             out_valid = '1;
         end
