@@ -19,13 +19,13 @@
 
 module cu (
     // pe input ports
-    input signed [`DATA_RANGE] kernel_data [`PE_NUM-1:0],
+    input signed [`DATA_RANGE] kernel_data  [`PE_NUM-1:0],
     input signed [`DATA_RANGE] feature_data [`PE_NUM-1:0],
-    input in_valid [`PE_NUM-1:0],
+    input [`PE_NUM-1:0] in_valid  ,
+    input [`PE_NUM-1:0] out_en    ,
+    input [`PE_NUM-1:0] calc_bias ,
+    input [`PE_NUM-1:0] calc_relu ,
     input flush,
-    input out_en [`PE_NUM-1:0],
-    input calc_bias [`PE_NUM-1:0],
-    input calc_relu [`PE_NUM-1:0],
     // output ports
     output logic signed [`DATA_RANGE] result_out,
     output logic result_out_valid,
@@ -39,8 +39,8 @@ module cu (
     localparam OUTPUT = 2'b01; 
 
     wire signed [`DATA_RANGE] pe_result [`PE_NUM-1:0];
-    wire pe_out_valid [`PE_NUM-1:0];
-    wire pe_illegal_uop [`PE_NUM-1:0];
+    wire [`PE_NUM-1:0]  pe_out_valid   ;
+    wire [`PE_NUM-1:0]  pe_illegal_uop ;
 
     reg signed [`DATA_RANGE] result_r [`PE_NUM-1:0];
     reg [31:0] counter;
@@ -54,8 +54,8 @@ module cu (
     generate
         for (i = 0; i < `PE_NUM; i = i + 1) begin : pe_array
             pe u_pe (
-                .x(kernel_data[i]),
-                .weight(feature_data[i]),
+                .x(feature_data[i]),
+                .weight(kernel_data[i]),
                 .in_valid(in_valid[i]),
                 .flush(flush),
                 .out_en(out_en[i]),
@@ -85,13 +85,13 @@ module cu (
         else begin
             case (state)
                 IDLE: begin
-                    for (int i = 0; i < `PE_NUM; i++) begin
-                        if (pe_out_valid[i]) begin
+                    if (|pe_out_valid) begin
+                        for (int i = 0; i < `PE_NUM; i++) begin
                             result_r[i] <= pe_result[i];
                         end
+                        counter <= 0;
+                        state <= OUTPUT;
                     end
-                    counter <= 0;
-                    state <= OUTPUT;
                 end
                 OUTPUT: begin
                     if (counter < `PE_NUM) begin
