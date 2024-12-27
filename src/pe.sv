@@ -26,32 +26,43 @@ always @* begin
     out_valid = '0;
     illegal_uop = '0;
     casez ({flush, in_valid, calc_bias, calc_relu, out_en})
-        5'b1???: begin
+        5'b1????: begin
             result = '0;
             out_valid = '0; 
         end 
-        5'b0000: begin
+        5'b00000: begin
             result = result_r;
             out_valid = out_valid_r;
         end 
-        5'b0001: begin
+        5'b00001: begin
             result = result_r;
             out_valid = '1;
         end
-        5'b001?: begin
+        5'b00010: begin
+            result = result_r[`XLEN-1] ? '0 : result_r;
+            out_valid = '0;
+        end
+        5'b00011: begin
+            result = result_r[`XLEN-1] ? '0 : result_r;
+            out_valid = '1;
+        end
+        5'b001??, 5'b01?1?: begin
+            // when calc bias, input valid must be 1
+            // when calc relu, input valid must be 0
+            // Cannot calc bias and relu at the same cycle
             illegal_uop = '1;
         end
-        5'b0100: begin
+        5'b01000: begin
             result = result_r + x * weight;
         end
-        5'b0101: begin
+        5'b01001: begin
             result = result_r + x * weight;
             out_valid = '1;
         end
-        5'b0110: begin
+        5'b01100: begin
             result = result_r + weight;
         end
-        5'b0111: begin
+        5'b01101: begin
             result = result_r + weight;
             out_valid = '1;
         end
