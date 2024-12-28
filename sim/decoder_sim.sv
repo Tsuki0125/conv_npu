@@ -64,8 +64,8 @@ module decoder_sim;
         // Apply test vectors
         #100;
         @(posedge clk);
-        feature_baseaddr = 32'h0040_0000;
-        kernel_baseaddr = 32'h0041_0000;
+        feature_baseaddr = 32'h0000_0000;
+        kernel_baseaddr = 32'h0000_0000;
         feature_chin = 32'h0000_0003;
         feature_chout = 32'd32;
         feature_width = 32'd256;

@@ -13,7 +13,7 @@ module decoder (
     input has_relu,
     input [`FRAM_ADDR_RANGE] output_baseaddr,
     input inst_valid,
-    output reg decoder_ready,
+    output decoder_ready,
     // cu port
     // output reg signed [`DATA_RANGE] kernel_data  [`PE_NUM-1:0],
     // output reg signed [`DATA_RANGE] feature_data [`PE_NUM-1:0],
@@ -61,7 +61,8 @@ reg [`FRAM_ADDR_RANGE]  output_baseaddr_r;
 reg [`XLEN-1:0] ch_cnt;
 reg [`XLEN-1:0] col_cnt;
 reg [`XLEN-1:0] row_cnt;
-reg [`XLEN-1:0] flat_offset;
+reg [`XLEN-1:0] kernel_flat_offset;
+reg [`XLEN-1:0] feature_flat_offset;
 
 
 //######################################################
@@ -100,16 +101,19 @@ always @(posedge clk or negedge rst_n) begin
         ch_cnt    <= '0;
         col_cnt   <= '0;
         row_cnt   <= '0;
-        flat_offset <= '0;
+        kernel_flat_offset <= '0;
+        feature_flat_offset <= '0;
     end
     else if (state == FLUSH) begin
         ch_cnt    <= '0;
         col_cnt   <= '0;
         row_cnt   <= '0;
-        flat_offset <= '0;
+        kernel_flat_offset <= '0;
+        feature_flat_offset <= '0;
     end
     else if (state == DECODE) begin
-        flat_offset <= kernel_sizew_r * feature_chin_r;
+        kernel_flat_offset <= kernel_sizew_r * feature_chin_r;
+        feature_flat_offset <= feature_width_r * feature_chin_r;
     end
     else if (state == MAC) begin
         if (ch_cnt == feature_chin_r - 1) begin
@@ -198,7 +202,6 @@ end
 //FSM outputs
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
-        decoder_ready <= '0;
         in_valid      <= '0;
         out_en        <= '0;
         calc_bias     <= '0;
@@ -208,7 +211,6 @@ always @(posedge clk or negedge rst_n) begin
     else begin
         case (state)
             IDLE: begin
-                decoder_ready <= '1;
                 in_valid      <= '0;
                 out_en        <= '0;
                 calc_bias     <= '0;
@@ -216,7 +218,6 @@ always @(posedge clk or negedge rst_n) begin
                 flush         <= '0;   
             end
             DECODE: begin
-                decoder_ready <= '0;
                 in_valid      <= '0;
                 out_en        <= '0;
                 calc_bias     <= '0;
@@ -224,7 +225,6 @@ always @(posedge clk or negedge rst_n) begin
                 flush         <= '0; 
             end
             MAC: begin
-                decoder_ready <= '0;
                 in_valid      <= '1;
                 out_en        <= '0;
                 calc_bias     <= '0;
@@ -232,7 +232,6 @@ always @(posedge clk or negedge rst_n) begin
                 flush         <= '0; 
             end
             BIAS: begin
-                decoder_ready <= '0;
                 in_valid      <= '1;
                 out_en        <= '0;
                 calc_bias     <= '1;
@@ -240,7 +239,6 @@ always @(posedge clk or negedge rst_n) begin
                 flush         <= '0; 
             end
             RELU: begin
-                decoder_ready <= '0;
                 in_valid      <= '0;
                 out_en        <= '0;
                 calc_bias     <= '0;
@@ -249,7 +247,6 @@ always @(posedge clk or negedge rst_n) begin
             end
             OUTPUT: begin
                 if (!wb_busy) begin
-                    decoder_ready <= '0;
                     in_valid      <= '0;
                     out_en        <= '1;
                     calc_bias     <= '0;
@@ -257,7 +254,6 @@ always @(posedge clk or negedge rst_n) begin
                     flush         <= '0; 
                 end
                 else begin
-                    decoder_ready <= '0;
                     in_valid      <= '0;
                     out_en        <= '0;
                     calc_bias     <= '0;
@@ -266,7 +262,6 @@ always @(posedge clk or negedge rst_n) begin
                 end
             end
             FLUSH: begin
-                decoder_ready <= '0;
                 in_valid      <= '0;
                 out_en        <= '0;
                 calc_bias     <= '0;
@@ -277,10 +272,13 @@ always @(posedge clk or negedge rst_n) begin
     end
 end
 
+assign decoder_ready = (state == IDLE);
+
 // BRAM addr
-wire [`XLEN-1:0] offset = row_cnt * flat_offset + col_cnt * feature_chin_r + ch_cnt;
-assign fram_addr = feature_baseaddr_r + offset;
-assign kram_addr = kernel_baseaddr_r + offset;
+wire [`XLEN-1:0] k_offset = row_cnt * kernel_flat_offset + col_cnt * feature_chin_r + ch_cnt;
+wire [`XLEN-1:0] f_offset = row_cnt * feature_flat_offset + col_cnt * feature_chin_r + ch_cnt;
+assign fram_addr = feature_baseaddr_r + f_offset;
+assign kram_addr = kernel_baseaddr_r + k_offset;
 
     
 endmodule
