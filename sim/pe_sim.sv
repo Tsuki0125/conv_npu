@@ -11,6 +11,7 @@ module pe_sim ();
     reg   flush;  
     reg   out_en;  
     reg   calc_bias;
+    reg   calc_relu;
     reg   signed [`DATA_RANGE] x;
     reg   signed [`DATA_RANGE] weight;
 
@@ -21,10 +22,13 @@ initial begin
     flush = '0;
     out_en = '0;
     calc_bias = '0;
+    calc_relu = '0;
     #20 rst_n = '1;
     #20;
 
-    normal_mac(32);    
+    normal_mac(32);  
+    #100;
+    illegal_op(32);  
 
 end
 
@@ -36,6 +40,11 @@ end
 task automatic normal_mac(input int num_mac);
     x = `XLEN'd1;
     weight = `XLEN'd1;
+    in_valid = '0;
+    flush = '0;
+    out_en = '0;
+    calc_bias = '0;
+    calc_relu = '0;
     for ( int i=0; i<=num_mac+1; i++) begin
         @(negedge clk); //wait for clk negedge
         if (i==num_mac+1) begin
@@ -52,25 +61,30 @@ task automatic normal_mac(input int num_mac);
     end
 endtask //automatic
 
+task automatic illegal_op(input int num_mac);
+    x = `XLEN'd1;
+    weight = `XLEN'd1;
+    in_valid = '0;
+    flush = '0;
+    out_en = '0;
+    calc_bias = '0;
+    calc_relu = '0;
+    for ( int i=0; i<=num_mac+1; i++) begin
+        @(negedge clk); //wait for clk negedge
+        if (i==num_mac+1) begin
+            flush = '1;
+        end
+        else if (i==num_mac) begin
+            in_valid = '0;
+            calc_bias = '1;
+            out_en = '1;
+        end
+        else begin
+            in_valid = '1;
+        end
+    end
+endtask //automatic
 
-/////////////////////////////////////////
-// // compute unit: pe
-// module pe (
-//     input signed [`DATA_RANGE] x,
-//     input signed [`DATA_RANGE] weight,
-//     input in_valid,
-//     input flush,
-//     input out_en,
-//     input calc_bias,
-//     //////////////////
-//     output reg signed [`DATA_RANGE] result_r,
-//     output reg out_valid_r,
-//     output reg illegal_uop,
-//     //////////////////
-//     input clk,
-//     input rst_n
-// );
-pe DUT(
-    .*
-);
+pe DUT(.*);
+
 endmodule
