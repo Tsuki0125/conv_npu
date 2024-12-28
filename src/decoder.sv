@@ -46,16 +46,16 @@ reg [2:0] state;
 reg [2:0] next_state;
 
 // inst-decode regs
-reg [`FRAM_ADDR_RANGE]  feature_baseaddr_r,
-reg [`KRAM_ADDR_RANGE]  kernel_baseaddr_r,
-reg [`DATA_RANGE]       feature_chin_r,
-reg [`DATA_RANGE]       feature_chout_r,
-reg [`DATA_RANGE]       feature_width_r,
-reg [`DATA_RANGE]       kernel_sizeh_r,
-reg [`DATA_RANGE]       kernel_sizew_r,
-reg                     has_bias_r,
-reg                     has_relu_r,
-reg [`FRAM_ADDR_RANGE]  output_baseaddr_r,
+reg [`FRAM_ADDR_RANGE]  feature_baseaddr_r;
+reg [`KRAM_ADDR_RANGE]  kernel_baseaddr_r;
+reg [`DATA_RANGE]       feature_chin_r;
+reg [`DATA_RANGE]       feature_chout_r;
+reg [`DATA_RANGE]       feature_width_r;
+reg [`DATA_RANGE]       kernel_sizeh_r;
+reg [`DATA_RANGE]       kernel_sizew_r;
+reg                     has_bias_r;
+reg                     has_relu_r;
+reg [`FRAM_ADDR_RANGE]  output_baseaddr_r;
 
 // MAC counters
 reg [`XLEN-1:0] ch_cnt;
@@ -128,7 +128,8 @@ always @(posedge clk or negedge rst_n) begin
             ch_cnt <= ch_cnt + 1;
         end
     end
-    else // just hold cnts' value
+    //else 
+    // just hold cnts' value
 end
 
 
