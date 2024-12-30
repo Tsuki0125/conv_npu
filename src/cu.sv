@@ -1,22 +1,5 @@
 `include "defines.sv"
 
-/*module pe (
-    input signed [`DATA_RANGE] x,
-    input signed [`DATA_RANGE] weight,
-    input in_valid,
-    input flush,
-    input out_en,
-    input calc_bias,
-    input calc_relu,
-    //////////////////
-    output reg signed [`DATA_RANGE] result_r,
-    output reg out_valid_r,
-    output reg illegal_uop,
-    //////////////////
-    input clk,
-    input rst_n
-);*/
-
 module cu (
     // pe input ports
     input signed [`DATA_RANGE] kernel_data  [`PE_NUM-1:0],

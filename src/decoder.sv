@@ -1,4 +1,10 @@
 `include "defines.sv"
+//------------------------------------------------------------------------------
+// Module Name: decoder
+// Description: generate control signals for compute unit
+// Additional Comments:
+// The addresses in this module refer to the BRAM port addresses, NOT the SOC memory mapping addresses.
+//------------------------------------------------------------------------------
 
 module decoder (
     // instgen port
@@ -7,16 +13,15 @@ module decoder (
     input [`DATA_RANGE] feature_chin,
     input [`DATA_RANGE] feature_chout,
     input [`DATA_RANGE] feature_width,
+    input [`DATA_RANGE] feature_height,
     input [`DATA_RANGE] kernel_sizeh,
     input [`DATA_RANGE] kernel_sizew,
     input has_bias,
     input has_relu,
-    input [`FRAM_ADDR_RANGE] output_baseaddr,
+    input [`FRAM_ADDR_RANGE] wb_baseaddr,
     input inst_valid,
     output decoder_ready,
-    // cu port
-    // output reg signed [`DATA_RANGE] kernel_data  [`PE_NUM-1:0],
-    // output reg signed [`DATA_RANGE] feature_data [`PE_NUM-1:0],
+    // CU port
     output reg [`PE_NUM-1:0] in_valid  ,
     output reg [`PE_NUM-1:0] out_en    ,
     output reg [`PE_NUM-1:0] calc_bias ,
@@ -51,11 +56,12 @@ reg [`KRAM_ADDR_RANGE]  kernel_baseaddr_r;
 reg [`DATA_RANGE]       feature_chin_r;
 reg [`DATA_RANGE]       feature_chout_r;
 reg [`DATA_RANGE]       feature_width_r;
+reg [`DATA_RANGE]       feature_height_r;
 reg [`DATA_RANGE]       kernel_sizeh_r;
 reg [`DATA_RANGE]       kernel_sizew_r;
 reg                     has_bias_r;
 reg                     has_relu_r;
-reg [`FRAM_ADDR_RANGE]  output_baseaddr_r;
+reg [`FRAM_ADDR_RANGE]  wb_baseaddr_r;
 
 // MAC counters
 reg [`XLEN-1:0] ch_cnt;
@@ -74,11 +80,12 @@ always @(posedge clk or negedge rst_n) begin
         feature_chin_r      <= '0;
         feature_chout_r     <= '0;
         feature_width_r     <= '0;
+        feature_height_r    <= '0;
         kernel_sizeh_r      <= '0;
         kernel_sizew_r      <= '0;
         has_bias_r          <= '0;
         has_relu_r          <= '0;
-        output_baseaddr_r   <= '0;
+        wb_baseaddr_r   <= '0;
     end
     else if (inst_valid & decoder_ready) begin
         feature_baseaddr_r  <= feature_baseaddr;
@@ -86,11 +93,12 @@ always @(posedge clk or negedge rst_n) begin
         feature_chin_r      <= feature_chin;
         feature_chout_r     <= feature_chout;
         feature_width_r     <= feature_width;
+        feature_height_r    <= feature_height;
         kernel_sizeh_r      <= kernel_sizeh;
         kernel_sizew_r      <= kernel_sizew;
         has_bias_r          <= has_bias;
         has_relu_r          <= has_relu;
-        output_baseaddr_r   <= output_baseaddr;
+        wb_baseaddr_r   <= wb_baseaddr;
     end
 end
 
@@ -112,28 +120,28 @@ always @(posedge clk or negedge rst_n) begin
         feature_flat_offset <= '0;
     end
     else if (state == DECODE) begin
-        kernel_flat_offset <= kernel_sizew_r * feature_chin_r;
-        feature_flat_offset <= feature_width_r * feature_chin_r;
+        kernel_flat_offset <= kernel_sizew_r * kernel_sizeh_r;
+        feature_flat_offset <= feature_width_r * feature_height_r;
     end
     else if (state == MAC) begin
-        if (ch_cnt == feature_chin_r - 1) begin
-            ch_cnt <= '0;
-            if (col_cnt == kernel_sizew_r - 1) begin
-                col_cnt <= '0;
-                if (row_cnt < kernel_sizeh_r) begin
-                    row_cnt <= row_cnt + 1;
+        if (col_cnt == kernel_sizew_r - 1) begin
+            col_cnt <= '0;
+            if (row_cnt == kernel_sizeh_r - 1) begin
+                row_cnt <= '0;
+                if (ch_cnt < feature_chin_r) begin
+                    ch_cnt <= ch_cnt + 1;
                 end
             end
             else begin
-                col_cnt <= col_cnt + 1;
+                row_cnt <= row_cnt + 1;
             end
         end
         else begin
-            ch_cnt <= ch_cnt + 1;
+            col_cnt <= col_cnt + 1;
         end
     end
     //else 
-    // just hold cnts' value
+    // just hold cnt's value
 end
 
 
@@ -199,7 +207,7 @@ always @(posedge clk or negedge rst_n) begin
     end
 end
 
-//FSM outputs
+//FSM uops output
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         in_valid      <= '0;
@@ -275,8 +283,8 @@ end
 assign decoder_ready = (state == IDLE);
 
 // BRAM addr
-wire [`XLEN-1:0] k_offset = row_cnt * kernel_flat_offset + col_cnt * feature_chin_r + ch_cnt;
-wire [`XLEN-1:0] f_offset = row_cnt * feature_flat_offset + col_cnt * feature_chin_r + ch_cnt;
+wire [`XLEN-1:0] k_offset = ch_cnt * kernel_flat_offset + row_cnt * kernel_sizew_r + col_cnt;
+wire [`XLEN-1:0] f_offset = ch_cnt * feature_flat_offset + row_cnt * feature_width_r + col_cnt;
 assign fram_addr = feature_baseaddr_r + f_offset;
 assign kram_addr = kernel_baseaddr_r + k_offset;
 
