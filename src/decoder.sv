@@ -161,7 +161,7 @@ always @(*) begin
             next_state = MAC;
         end
         MAC: begin
-            if (row_cnt == kernel_sizeh_r) begin
+            if (ch_cnt == feature_chin_r) begin
                 if(has_bias) begin
                     next_state = BIAS;
                 end else if(has_relu) begin

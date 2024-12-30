@@ -1,7 +1,6 @@
 `include "defines.sv"
 
 module decoder_sim;
-
     // Parameters
     localparam CLK_PERIOD = 10;
 
@@ -13,11 +12,12 @@ module decoder_sim;
     reg [`DATA_RANGE] feature_chin;
     reg [`DATA_RANGE] feature_chout;
     reg [`DATA_RANGE] feature_width;
+    reg [`DATA_RANGE] feature_height;
     reg [`DATA_RANGE] kernel_sizeh;
     reg [`DATA_RANGE] kernel_sizew;
     reg has_bias;
     reg has_relu;
-    reg [`FRAM_ADDR_RANGE] output_baseaddr;
+    reg [`FRAM_ADDR_RANGE] wb_baseaddr;
     reg inst_valid;
     wire decoder_ready;
     wire [`PE_NUM-1:0] in_valid;
@@ -53,11 +53,12 @@ module decoder_sim;
         feature_chin = '0;
         feature_chout = '0;
         feature_width = '0;
+        feature_height = '0;
         kernel_sizeh = '0;
         kernel_sizew = '0;
         has_bias = 0;
         has_relu = 0;
-        output_baseaddr = '0;
+        wb_baseaddr = '0;
         inst_valid = 0;
         wb_busy = 0;
 
@@ -68,12 +69,13 @@ module decoder_sim;
         kernel_baseaddr = 32'h0000_0000;
         feature_chin = 32'h0000_0003;
         feature_chout = 32'd32;
-        feature_width = 32'd256;
+        feature_width = 32'd200;
+        feature_height = 32'd100;
         kernel_sizeh = 32'd3;
         kernel_sizew = 32'd3;
         has_bias = 1;
         has_relu = 1;
-        output_baseaddr = 32'h0000_0000;
+        wb_baseaddr = 32'h0000_0000;
         inst_valid = 1;
 
         wait(decoder_ready & inst_valid);
