@@ -62,13 +62,14 @@ reg [`DATA_RANGE]       kernel_sizew_r;
 reg                     has_bias_r;
 reg                     has_relu_r;
 reg [`FRAM_ADDR_RANGE]  wb_baseaddr_r;
+reg [`XLEN-1:0] kernel_flat_offset;
+reg [`XLEN-1:0] feature_flat_offset;
 
 // MAC counters
 reg [`XLEN-1:0] ch_cnt;
 reg [`XLEN-1:0] col_cnt;
 reg [`XLEN-1:0] row_cnt;
-reg [`XLEN-1:0] kernel_flat_offset;
-reg [`XLEN-1:0] feature_flat_offset;
+
 
 
 //######################################################
@@ -85,7 +86,9 @@ always @(posedge clk or negedge rst_n) begin
         kernel_sizew_r      <= '0;
         has_bias_r          <= '0;
         has_relu_r          <= '0;
-        wb_baseaddr_r   <= '0;
+        wb_baseaddr_r       <= '0;
+        kernel_flat_offset  <= '0;
+        feature_flat_offset <= '0;
     end
     else if (inst_valid & decoder_ready) begin
         feature_baseaddr_r  <= feature_baseaddr;
@@ -98,7 +101,9 @@ always @(posedge clk or negedge rst_n) begin
         kernel_sizew_r      <= kernel_sizew;
         has_bias_r          <= has_bias;
         has_relu_r          <= has_relu;
-        wb_baseaddr_r   <= wb_baseaddr;
+        wb_baseaddr_r       <= wb_baseaddr;
+        kernel_flat_offset  <= kernel_sizew * kernel_sizeh;
+        feature_flat_offset <= feature_width * feature_height;
     end
 end
 
@@ -109,19 +114,12 @@ always @(posedge clk or negedge rst_n) begin
         ch_cnt    <= '0;
         col_cnt   <= '0;
         row_cnt   <= '0;
-        kernel_flat_offset <= '0;
-        feature_flat_offset <= '0;
+        
     end
     else if (state == FLUSH) begin
         ch_cnt    <= '0;
         col_cnt   <= '0;
         row_cnt   <= '0;
-        kernel_flat_offset <= '0;
-        feature_flat_offset <= '0;
-    end
-    else if (state == DECODE) begin
-        kernel_flat_offset <= kernel_sizew_r * kernel_sizeh_r;
-        feature_flat_offset <= feature_width_r * feature_height_r;
     end
     else if (state == MAC) begin
         if (col_cnt == kernel_sizew_r - 1) begin
