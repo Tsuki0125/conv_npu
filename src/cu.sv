@@ -1,19 +1,24 @@
 `include "defines.sv"
 
 module cu (
-    // pe input ports
+    // BRAM ports
     input signed [`DATA_RANGE] kernel_data  [`PE_NUM-1:0],
     input signed [`DATA_RANGE] feature_data [`PE_NUM-1:0],
+    // INSTGEN ports
+    input [`FRAM_ADDR_RANGE] wb_baseaddr,
+    input [`DATA_RANGE] wb_ch_offset,
+    // decoder ports
     input [`PE_NUM-1:0] in_valid  ,
     input [`PE_NUM-1:0] out_en    ,
     input [`PE_NUM-1:0] calc_bias ,
     input [`PE_NUM-1:0] calc_relu ,
-    input flush,
+    input               flush,
+    output logic wb_busy,
     // output ports
     output logic signed [`DATA_RANGE] result_out,
+    output logic [`FRAM_ADDR_RANGE] wb_addr,
     output logic result_out_valid,
     output logic illegal_uop,
-    output logic wb_busy,
     //////////////////////
     input wire clk,
     input wire rst_n
@@ -64,6 +69,7 @@ module cu (
             state <= IDLE;
             result_out <= '0;
             result_out_valid <= '0;
+            wb_addr <= '0;
         end
         else begin
             case (state)

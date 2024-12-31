@@ -69,7 +69,7 @@ reg                     has_bias_r;
 reg                     has_relu_r;
 reg [`DATA_RANGE]       stride_r;
 reg [`FRAM_ADDR_RANGE]  wb_baseaddr_r;
-
+reg [`DATA_RANGE]       wb_ch_offset;
 // conv stride control signals
 reg [`DATA_RANGE]       position_x, position_x_nxt;
 reg [`DATA_RANGE]       position_y, position_y_nxt;
