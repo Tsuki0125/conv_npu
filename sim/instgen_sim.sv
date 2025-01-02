@@ -30,8 +30,8 @@ module instgen_tb;
     wire conv_complete;
 
     // Outputs
-    wire [ADDR_WIDTH-1:0] stride_feature_baseaddr;
-    wire [ADDR_WIDTH-1:0] stride_kernel_baseaddr;
+    wire [`FRAM_ADDR_RANGE] stride_feature_baseaddr;
+    wire [`KRAM_ADDR_RANGE] stride_kernel_baseaddr;
     wire [DATA_WIDTH-1:0] stride_feature_chin;
     wire [DATA_WIDTH-1:0] stride_feature_chout;
     wire [DATA_WIDTH-1:0] stride_feature_width;
@@ -40,7 +40,7 @@ module instgen_tb;
     wire [DATA_WIDTH-1:0] stride_kernel_sizew;
     wire stride_has_bias;
     wire stride_has_relu;
-    wire [ADDR_WIDTH-1:0] stride_wb_baseaddr;
+    wire [`FRAM_ADDR_RANGE] stride_wb_baseaddr;
     wire [DATA_WIDTH-1:0] stride_wb_ch_offset;
 
     // Instantiate the DUT (Device Under Test)
@@ -99,7 +99,7 @@ module instgen_tb;
         has_bias = 1;
         has_relu = 1;
         stride = 32'd1;
-        output_baseaddr = 32'h00010000;
+        output_baseaddr = `FRAM_ADDR_WIDTH'h00010000;
         output_width = 32'd26;
         output_height = 32'd26;
         csrcmd_valid = 0;

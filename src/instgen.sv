@@ -61,8 +61,8 @@ reg [2:0] state;
 reg [2:0] next_state;
 
 // instgen regs
-reg [`FRAM_ADDR_RANGE]  feature_baseaddr_r;
-reg [`KRAM_ADDR_RANGE]  kernel_baseaddr_r;
+reg [`ADDR_RANGE]       feature_baseaddr_r;
+reg [`ADDR_RANGE]       kernel_baseaddr_r;
 reg [`DATA_RANGE]       feature_chin_r;
 reg [`DATA_RANGE]       feature_chout_r;
 reg [`DATA_RANGE]       feature_width_r;
@@ -75,7 +75,6 @@ reg [`DATA_RANGE]       stride_r;
 reg [`FRAM_ADDR_RANGE]  wb_baseaddr_r;
 reg [`DATA_RANGE]       output_width_r;
 reg [`DATA_RANGE]       output_height_r;
-reg [`DATA_RANGE]       wb_ch_offset;
 // conv stride control signals
 reg [`DATA_RANGE]       position_x, position_x_nxt;
 reg [`DATA_RANGE]       position_y, position_y_nxt;
@@ -83,8 +82,8 @@ reg [`DATA_RANGE]       feature_flat_offset;
 reg [`FRAM_ADDR_RANGE]  wbaddr_offset;
 reg conv_done;
 
-wire row_overflow =  position_x_nxt >= feature_width_r;
-wire col_overflow =  position_y_nxt >= feature_height_r;
+// wire row_overflow =  position_x_nxt >= feature_width_r;
+// wire col_overflow =  position_y_nxt >= feature_height_r;
 
 
 //###############################################################
@@ -230,7 +229,7 @@ always @* begin
 end
 
 //decoder output assignment
-wire f_offset = (position_y - kernel_sizeh_r) * feature_width_r + position_x - kernel_sizew_r + 1; 
+wire [`FRAM_ADDR_RANGE] f_offset = (position_y - kernel_sizeh_r + 1) * feature_width_r + position_x - kernel_sizew_r + 1; 
 always @* begin
     stride_feature_baseaddr = feature_baseaddr_r[2+:`FRAM_ADDR_WIDTH] + f_offset;
     stride_kernel_baseaddr = kernel_baseaddr_r[2+:`KRAM_BANKADDR_WIDTH];
