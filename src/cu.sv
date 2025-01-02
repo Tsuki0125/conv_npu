@@ -4,15 +4,14 @@ module cu (
     // BRAM ports
     input signed [`DATA_RANGE] kernel_data  [`PE_NUM-1:0],
     input signed [`DATA_RANGE] feature_data [`PE_NUM-1:0],
-    // INSTGEN ports
-    input [`FRAM_ADDR_RANGE] wb_baseaddr,
-    input [`DATA_RANGE] wb_ch_offset,
     // decoder ports
     input [`PE_NUM-1:0] in_valid  ,
     input [`PE_NUM-1:0] out_en    ,
     input [`PE_NUM-1:0] calc_bias ,
     input [`PE_NUM-1:0] calc_relu ,
     input               flush,
+    input [`FRAM_ADDR_RANGE] wb_baseaddr,
+    input [`DATA_RANGE] wb_ch_offset,
     output logic wb_busy,
     // output ports
     output logic signed [`DATA_RANGE] result_out,
@@ -31,6 +30,7 @@ module cu (
     wire [`PE_NUM-1:0]  pe_illegal_uop ;
 
     reg signed [`DATA_RANGE] result_r [`PE_NUM-1:0];
+    reg [`FRAM_ADDR_RANGE]   wb_addr_r;
     reg [31:0] counter;
     reg [1:0] state;
 
@@ -69,11 +69,13 @@ module cu (
             state <= IDLE;
             result_out <= '0;
             result_out_valid <= '0;
+            wb_addr_r <= '0;
             wb_addr <= '0;
         end
         else begin
             case (state)
                 IDLE: begin
+                    wb_addr_r <= '0;
                     if (|pe_out_valid) begin
                         for (int i = 0; i < `PE_NUM; i++) begin
                             result_r[i] <= pe_result[i];
@@ -85,6 +87,7 @@ module cu (
                 OUTPUT: begin
                     if (counter < `PE_NUM) begin
                         result_out <= result_r[counter];
+                        wb_addr_r  <= wb_baseaddr + wb_ch_offset * counter;
                         result_out_valid <= 1;
                         counter <= counter + 1;
                     end

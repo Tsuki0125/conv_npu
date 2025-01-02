@@ -21,7 +21,9 @@ module instgen (
     input has_bias,
     input has_relu,
     input [`DATA_RANGE] stride,
-    input [`ADDR_RANGE] wb_baseaddr,
+    input [`ADDR_RANGE] output_baseaddr,
+    input [`DATA_RANGE] output_width,
+    input [`DATA_RANGE] output_height,
     input csrcmd_valid,
     output instgen_ready,
     // decoder port
@@ -35,9 +37,11 @@ module instgen (
     output reg [`DATA_RANGE]        stride_kernel_sizew,
     output reg                      stride_has_bias,
     output reg                      stride_has_relu,
-    output reg [`FRAM_ADDR_RANGE]   stride_wb_baseaddr,
     output inst_valid,
     input  decoder_ready,
+    output reg [`FRAM_ADDR_RANGE]   stride_wb_baseaddr,
+    output reg [`DATA_RANGE]        stride_wb_ch_offset,
+
     //////////////////////
     output conv_complete,
     input wire clk,
@@ -69,6 +73,8 @@ reg                     has_bias_r;
 reg                     has_relu_r;
 reg [`DATA_RANGE]       stride_r;
 reg [`FRAM_ADDR_RANGE]  wb_baseaddr_r;
+reg [`DATA_RANGE]       output_width_r;
+reg [`DATA_RANGE]       output_height_r;
 reg [`DATA_RANGE]       wb_ch_offset;
 // conv stride control signals
 reg [`DATA_RANGE]       position_x, position_x_nxt;
@@ -101,6 +107,8 @@ always @(posedge clk or negedge rst_n) begin
         has_relu_r          <= '0;
         stride_r            <= '0;
         wb_baseaddr_r       <= '0;
+        output_width_r      <= '0;
+        output_height_r     <= '0;
         feature_flat_offset <= '0;
     end
     else if (csrcmd_valid && instgen_ready) begin
@@ -115,7 +123,9 @@ always @(posedge clk or negedge rst_n) begin
         has_bias_r          <= has_bias;
         has_relu_r          <= has_relu;
         stride_r            <= stride;
-        wb_baseaddr_r       <= wb_baseaddr;
+        wb_baseaddr_r       <= output_baseaddr;
+        output_width_r      <= output_width;
+        output_height_r     <= output_height;
         feature_flat_offset <= feature_width * feature_height;
     end
 end
@@ -233,6 +243,7 @@ always @* begin
     stride_has_bias = has_bias_r;
     stride_has_relu = has_relu_r;
     stride_wb_baseaddr = wb_baseaddr_r + wbaddr_offset;
+    stride_wb_ch_offset = output_width_r * output_height_r;
 end
 
 endmodule

@@ -19,6 +19,7 @@ module decoder (
     input has_bias,
     input has_relu,
     input [`FRAM_ADDR_RANGE] wb_baseaddr,
+    input [`DATA_RANGE]      wb_ch_offset,
     input inst_valid,
     output decoder_ready,
     // CU port
@@ -27,6 +28,8 @@ module decoder (
     output reg [`PE_NUM-1:0] calc_bias ,
     output reg [`PE_NUM-1:0] calc_relu ,
     output reg               flush     ,
+    output [`FRAM_ADDR_RANGE] cu_wb_baseaddr,
+    output [`DATA_RANGE]      cu_wb_ch_offset,
     input wb_busy,
     // BRAM port
     output logic [`FRAM_ADDR_RANGE] fram_addr,
@@ -62,6 +65,7 @@ reg [`DATA_RANGE]       kernel_sizew_r;
 reg                     has_bias_r;
 reg                     has_relu_r;
 reg [`FRAM_ADDR_RANGE]  wb_baseaddr_r;
+reg [`DATA_RANGE]       wb_ch_offset_r;
 reg [`XLEN-1:0] kernel_flat_offset;
 reg [`XLEN-1:0] feature_flat_offset;
 
@@ -87,6 +91,7 @@ always @(posedge clk or negedge rst_n) begin
         has_bias_r          <= '0;
         has_relu_r          <= '0;
         wb_baseaddr_r       <= '0;
+        wb_ch_offset_r      <= '0;
         kernel_flat_offset  <= '0;
         feature_flat_offset <= '0;
     end
@@ -102,6 +107,7 @@ always @(posedge clk or negedge rst_n) begin
         has_bias_r          <= has_bias;
         has_relu_r          <= has_relu;
         wb_baseaddr_r       <= wb_baseaddr;
+        wb_ch_offset_r      <= wb_ch_offset;
         kernel_flat_offset  <= kernel_sizew * kernel_sizeh;
         feature_flat_offset <= feature_width * feature_height;
     end
@@ -285,6 +291,7 @@ wire [`XLEN-1:0] k_offset = ch_cnt * kernel_flat_offset + row_cnt * kernel_sizew
 wire [`XLEN-1:0] f_offset = ch_cnt * feature_flat_offset + row_cnt * feature_width_r + col_cnt;
 assign fram_addr = feature_baseaddr_r + f_offset;
 assign kram_addr = kernel_baseaddr_r + k_offset;
-
+assign cu_wb_baseaddr = wb_baseaddr_r;
+assign cu_wb_ch_offset = wb_ch_offset_r;
     
 endmodule
