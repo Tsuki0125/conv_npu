@@ -30,7 +30,7 @@ module accelerator #
 	output wire  s00_axi_rvalid,
 	input wire  s00_axi_rready,
 	// AXI-Slave - bram ctrl(feature sram)
-	input wire [] //TODO
+	//TODO
 	// AXI-Slave - bram ctrl(kernel sram)
 
 	// interupt signal: compute done
@@ -40,19 +40,7 @@ module accelerator #
 	input rst_n 
 );
 
-// csr register
-reg [`DATA_RANGE] csr_npu_control;
-reg [`DATA_RANGE] csr_kernel_baseaddr;
-reg [`DATA_RANGE] csr_feature_baseaddr;
-reg [`DATA_RANGE] csr_feature_width;
-reg [`DATA_RANGE] csr_feature_height;
-reg [`DATA_RANGE] csr_feature_chin;
-reg [`DATA_RANGE] csr_feature_chout;
-reg [`DATA_RANGE] csr_output_baseaddr;
-reg [`DATA_RANGE] csr_output_width;
-reg [`DATA_RANGE] csr_output_height;
-// wires from axi-csr to csr-register
-wire [`DATA_RANGE] npu_control;
+
 wire [`DATA_RANGE] kernel_baseaddr;
 wire [`DATA_RANGE] feature_baseaddr;
 wire [`DATA_RANGE] feature_width;
@@ -62,55 +50,16 @@ wire [`DATA_RANGE] feature_chout;
 wire [`DATA_RANGE] output_baseaddr;
 wire [`DATA_RANGE] output_width;
 wire [`DATA_RANGE] output_height;
-// npu control bit select:
-wire [7:0] kernel_size 	= csr_npu_control[31:24];
-wire [7:0] stride 		= csr_npu_control[23:16];
-wire [7:0] padding 		= csr_npu_control[15:8];
-wire has_bias 			= csr_npu_control[7];
-wire has_relu 			= csr_npu_control[6];
-wire conv_mode 			= csr_npu_control[5];
-// wire reserved 		= csr_npu_control[4];
-wire running 			= csr_npu_control[3];
-wire done 				= csr_npu_control[2];
-wire exception 			= csr_npu_control[1];
-wire start 				= csr_npu_control[0];
-
-
-
-
-
-
-
-always @(posedge clk or negedge rst_n) begin
-	if (!rst_n) begin
-		csr_npu_control 		<= '0;
-		csr_kernel_baseaddr		<= '0;
-		csr_feature_baseaddr 	<= '0;
-		csr_feature_width 		<= '0;
-		csr_feature_height 		<= '0;
-		csr_feature_chin 		<= '0;
-		csr_feature_chout 		<= '0;
-		csr_output_baseaddr 	<= '0;
-		csr_output_width 		<= '0;
-		csr_output_height 		<= '0;
-	end
-	else if (!running) begin // write csr register when NOT RUNNING
-		csr_npu_control 		<= (npu_control & 32'hFFFF_FFF1) ; //some bits are READ-ONLY
-		csr_kernel_baseaddr 	<= kernel_baseaddr;
-		csr_feature_baseaddr 	<= feature_baseaddr;
-		csr_feature_width 		<= feature_width;
-		csr_feature_height 		<= feature_height;
-		csr_feature_chin 		<= feature_chin;
-		csr_feature_chout 		<= feature_chout;
-		csr_output_baseaddr 	<= output_baseaddr;
-		csr_output_width 		<= output_width;
-		csr_output_height 		<= output_height;
-	end
-end
-
-
-
-
+wire [7:0] kernel_size;
+wire [7:0] stride;
+wire [7:0] padding;
+wire has_bias;
+wire has_relu;
+wire conv_mode;
+wire start;
+wire running = 1'b0;
+wire conv_done	= 1'b0;
+wire exception	= 1'b0;
 
 
 //----------------------------------------------------------
@@ -118,7 +67,16 @@ end
 // Instantiation of Axi Bus Interface S_AXI
 axi_csr  u_axi_csr (
 	// csr register
-	.npu_control		(npu_control)		,
+	.kernel_size		(kernel_size)		,
+	.stride				(stride)			,
+	.padding			(padding)			,
+	.has_bias			(has_bias)			,
+	.has_relu			(has_relu)			,
+	.conv_mode			(conv_mode)			,
+	.running			(running)			,
+	.conv_done			(conv_done)			,
+	.exception			(exception)			,
+	.start				(start)				,
 	.kernel_baseaddr	(kernel_baseaddr)	,
 	.feature_baseaddr	(feature_baseaddr)	,
 	.feature_width		(feature_width)		,

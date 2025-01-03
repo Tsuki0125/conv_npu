@@ -11,8 +11,16 @@
 	(
 		//###############################################################################################
 		//-----------------------------------------------------------------------------------------------
-		// Users to add ports here
-		output wire [`DATA_RANGE] npu_control,
+		output wire [7:0] kernel_size, 	
+		output wire [7:0] stride, 		
+		output wire [7:0] padding, 	
+		output wire has_bias,
+		output wire has_relu,
+		output wire conv_mode,
+		input wire running,
+		input wire conv_done,
+		input wire exception,
+		output wire start,
 		output wire [`DATA_RANGE] kernel_baseaddr,
 		output wire [`DATA_RANGE] feature_baseaddr,
 		output wire [`DATA_RANGE] feature_width,
@@ -22,7 +30,6 @@
 		output wire [`DATA_RANGE] output_baseaddr,
 		output wire [`DATA_RANGE] output_width,
 		output wire [`DATA_RANGE] output_height,
-		// Do not modify the ports beyond this line
 		//-----------------------------------------------------------------------------------------------
 		// Global Clock Signal
 		input wire  S_AXI_ACLK,
@@ -74,7 +81,7 @@
     		// ready to accept an address and associated control signals.
 		output wire  S_AXI_ARREADY,
 		// Read data (issued by slave)
-		output wire [C_S_AXI_DATA_WIDTH-1 : 0] S_AXI_RDATA,
+		output reg [C_S_AXI_DATA_WIDTH-1 : 0] S_AXI_RDATA,
 		// Read response. This signal indicates the status of the
     		// read transfer.
 		output wire [1 : 0] S_AXI_RRESP,
@@ -105,19 +112,27 @@
 	localparam integer ADDR_LSB = (C_S_AXI_DATA_WIDTH/32) + 1;
 	localparam integer OPT_MEM_ADDR_BITS = 3;
 	//----------------------------------------------
-	//-- Signals for user logic register space example
+	//-- Signals for user logic register space
 	//------------------------------------------------
-	//-- Number of Slave Registers 10
-	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg0;
-	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg1;
-	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg2;
-	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg3;
-	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg4;
-	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg5;
-	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg6;
-	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg7;
-	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg8;
-	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg9;
+	wire running;   			// read-only
+	wire conv_done; 			// read-only
+	wire exception; 			// read-only
+	reg [7:0] 	kernel_size_r;
+	reg [7:0] 	stride_r;
+	reg [7:0] 	padding_r;
+	reg 		has_bias_r;
+	reg 		has_relu_r;
+	reg 		conv_mode_r;
+	reg  		start_r;	 	// auto-clear
+	reg [C_S_AXI_DATA_WIDTH-1:0]	kernel_baseaddr_r;
+	reg [C_S_AXI_DATA_WIDTH-1:0]	feature_baseaddr_r;
+	reg [C_S_AXI_DATA_WIDTH-1:0]	feature_width_r;
+	reg [C_S_AXI_DATA_WIDTH-1:0]	feature_height_r;
+	reg [C_S_AXI_DATA_WIDTH-1:0]	feature_chin_r;
+	reg [C_S_AXI_DATA_WIDTH-1:0]	feature_chout_r;
+	reg [C_S_AXI_DATA_WIDTH-1:0]	output_baseaddr_r;
+	reg [C_S_AXI_DATA_WIDTH-1:0]	output_width_r;
+	reg [C_S_AXI_DATA_WIDTH-1:0]	output_height_r;
 	integer	 byte_index;
 
 	// I/O Connections assignments
@@ -215,106 +230,161 @@
 	begin
 	  if ( S_AXI_ARESETN == 1'b0 )
 	    begin
-	      slv_reg0 <= 0;
-	      slv_reg1 <= 0;
-	      slv_reg2 <= 0;
-	      slv_reg3 <= 0;
-	      slv_reg4 <= 0;
-	      slv_reg5 <= 0;
-	      slv_reg6 <= 0;
-	      slv_reg7 <= 0;
-	      slv_reg8 <= 0;
-	      slv_reg9 <= 0;
+		  kernel_size_r	<= '0;
+		  stride_r 		<= '0;
+		  padding_r 	<= '0;
+		  has_bias_r 	<= '0;
+		  has_relu_r	<= '0;
+		  conv_mode_r	<= '0;
+		  start_r 		<= '0;
+	      kernel_baseaddr_r 	<= '0;
+	      feature_baseaddr_r 	<= '0;
+	      feature_width_r 		<= '0;
+	      feature_height_r 		<= '0;
+	      feature_chin_r 		<= '0;
+	      feature_chout_r 		<= '0;
+	      output_baseaddr_r 	<= '0;
+	      output_width_r 		<= '0;
+	      output_height_r 		<= '0;
 	    end 
-	  else begin
-	    if (S_AXI_WVALID)
-	      begin
+	  else if (S_AXI_WVALID && ~running) // write csr register when NOT in RUNNING state
+  	      begin
 	        case ( (S_AXI_AWVALID) ? S_AXI_AWADDR[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] : axi_awaddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] )
-	          4'h0:
-	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
-	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
-	                // Respective byte enables are asserted as per write strobes 
-	                // Slave register 0
-	                slv_reg0[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-	              end  
-	          4'h1:
-	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
+	          4'h0: begin
+				start_r <= S_AXI_WDATA[0];
+				// BITS[4:1] READ ONLY
+				conv_mode_r <= S_AXI_WDATA[5];
+				has_relu_r <= S_AXI_WDATA[6];
+				has_bias_r <= S_AXI_WDATA[7];
+				padding_r <= S_AXI_WDATA[15:8];
+				stride_r <= S_AXI_WDATA[23:16];
+				kernel_size_r <= S_AXI_WDATA[31:24];
+			  end
+					
+	          4'h1: begin
+				start_r 		<= 1'b0;
+				for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
 	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
 	                // Respective byte enables are asserted as per write strobes 
 	                // Slave register 1
-	                slv_reg1[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-	              end  
-	          4'h2:
-	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
+	                kernel_baseaddr_r[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
+	              end 
+			  end
+	             
+	          4'h2: begin
+				start_r 		<= 1'b0;
+				for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
 	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
 	                // Respective byte enables are asserted as per write strobes 
 	                // Slave register 2
-	                slv_reg2[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
+	                feature_baseaddr_r[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
 	              end  
-	          4'h3:
-	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
+			  end
+	            
+	          4'h3: begin
+				start_r 		<= 1'b0;
+				for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
 	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
 	                // Respective byte enables are asserted as per write strobes 
 	                // Slave register 3
-	                slv_reg3[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-	              end  
-	          4'h4:
-	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
+	                feature_width_r[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
+	              end 
+			  end
+	             
+	          4'h4: begin
+				start_r 		<= 1'b0;
+				for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
 	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
 	                // Respective byte enables are asserted as per write strobes 
 	                // Slave register 4
-	                slv_reg4[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-	              end  
-	          4'h5:
-	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
+	                feature_height_r[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
+	              end 
+			  end
+	             
+	          4'h5: begin
+				start_r 		<= 1'b0;
+				for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
 	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
 	                // Respective byte enables are asserted as per write strobes 
 	                // Slave register 5
-	                slv_reg5[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
+	                feature_chin_r[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
 	              end  
-	          4'h6:
+			  end
+	            
+	          4'h6: begin
+				start_r 		<= 1'b0;
 	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
 	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
 	                // Respective byte enables are asserted as per write strobes 
 	                // Slave register 6
-	                slv_reg6[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-	              end  
-	          4'h7:
-	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
+	                feature_chout_r[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
+	              end 
+		        end
+	          4'h7: begin
+	            start_r 		<= 1'b0;
+				for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
 	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
 	                // Respective byte enables are asserted as per write strobes 
 	                // Slave register 7
-	                slv_reg7[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-	              end  
-	          4'h8:
+	                output_baseaddr_r[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
+	              end 
+			    end 
+	          4'h8: begin
+				start_r 		<= 1'b0;
 	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
 	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
 	                // Respective byte enables are asserted as per write strobes 
 	                // Slave register 8
-	                slv_reg8[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
+	                output_width_r[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
 	              end  
-	          4'h9:
+			    end
+	          4'h9: begin
+				start_r 		<= 1'b0;
 	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
 	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
 	                // Respective byte enables are asserted as per write strobes 
 	                // Slave register 9
-	                slv_reg9[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
+	                output_height_r[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
 	              end  
+			  	end
 	          default : begin
-	                      slv_reg0 <= slv_reg0;
-	                      slv_reg1 <= slv_reg1;
-	                      slv_reg2 <= slv_reg2;
-	                      slv_reg3 <= slv_reg3;
-	                      slv_reg4 <= slv_reg4;
-	                      slv_reg5 <= slv_reg5;
-	                      slv_reg6 <= slv_reg6;
-	                      slv_reg7 <= slv_reg7;
-	                      slv_reg8 <= slv_reg8;
-	                      slv_reg9 <= slv_reg9;
+	                      kernel_size_r	<= kernel_size_r;
+						  stride_r 		<= stride_r;
+						  padding_r 	<= padding_r;
+						  has_bias_r 	<= has_bias_r;
+						  has_relu_r	<= has_relu_r;
+						  conv_mode_r	<= conv_mode_r;
+						  start_r 		<= 1'b0;
+	                      kernel_baseaddr_r 	<= kernel_baseaddr_r;
+	                      feature_baseaddr_r 	<= feature_baseaddr_r;
+	                      feature_width_r 		<= feature_width_r;
+	                      feature_height_r 		<= feature_height_r;
+	                      feature_chin_r 		<= feature_chin_r;
+	                      feature_chout_r 		<= feature_chout_r;
+	                      output_baseaddr_r 	<= output_baseaddr_r;
+	                      output_width_r 		<= output_width_r;
+	                      output_height_r 		<= output_height_r;
 	                    end
 	        endcase
 	      end
-	  end
+		else begin
+			kernel_size_r	<= kernel_size_r;
+			stride_r 		<= stride_r;
+			padding_r 		<= padding_r;
+			has_bias_r 		<= has_bias_r;
+			has_relu_r		<= has_relu_r;
+			conv_mode_r		<= conv_mode_r;
+			start_r 		<= 1'b0;
+			kernel_baseaddr_r 		<= kernel_baseaddr_r;
+			feature_baseaddr_r 		<= feature_baseaddr_r;
+			feature_width_r 		<= feature_width_r;
+			feature_height_r 		<= feature_height_r;
+			feature_chin_r 			<= feature_chin_r;
+			feature_chout_r 		<= feature_chout_r;
+			output_baseaddr_r 		<= output_baseaddr_r;
+			output_width_r 			<= output_width_r;
+			output_height_r 		<= output_height_r;
+		end
 	end    
 
 	// Implement read state machine
@@ -365,22 +435,52 @@
 	          end                                       
 	        end                                         
 	// Implement memory mapped register select and read logic generation
-	  assign S_AXI_RDATA = (axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] == 2'h0) ? slv_reg0 : (axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] == 2'h1) ? slv_reg1 : (axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] == 2'h2) ? slv_reg2 : (axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] == 2'h3) ? slv_reg3 :0;  
-	
+	always @* begin
+		case (axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB])
+			4'd0:
+				S_AXI_RDATA = {kernel_size_r, stride_r, padding_r, has_bias_r, has_relu_r, conv_mode_r, 1'b0, running, conv_done, exception, start_r};
+			4'd1:
+				S_AXI_RDATA = kernel_baseaddr_r;
+			4'd2:
+				S_AXI_RDATA = feature_baseaddr_r;
+			4'd3:
+				S_AXI_RDATA = feature_width_r;
+			4'd4:
+				S_AXI_RDATA = feature_height_r;
+			4'd5:
+				S_AXI_RDATA = feature_chin_r;
+			4'd6:
+				S_AXI_RDATA = feature_chout_r;
+			4'd7:
+				S_AXI_RDATA = output_baseaddr_r;
+			4'd8:
+				S_AXI_RDATA = output_width_r;
+			4'd9:
+				S_AXI_RDATA = output_height_r;
+			default: 
+				S_AXI_RDATA = 0;
+		endcase
+	end
 	
 	//###############################################################################################
 	//-----------------------------------------------------------------------------------------------
 	// Add user logic here
-	assign npu_control = slv_reg0;
-	assign kernel_baseaddr = slv_reg1;
-	assign feature_baseaddr = slv_reg2;
-	assign feature_width = slv_reg3;
-	assign feature_height = slv_reg4;
-	assign feature_chin = slv_reg5;
-	assign feature_chout = slv_reg6;
-	assign output_baseaddr = slv_reg7;
-	assign output_width = slv_reg8;
-	assign output_height = slv_reg9;
+	assign kernel_size = kernel_size_r;
+	assign stride = stride_r;
+	assign padding = padding_r;
+	assign has_bias = has_bias_r;
+	assign has_relu = has_relu_r;
+	assign conv_mode = conv_mode_r;
+	assign start = start_r;
+	assign kernel_baseaddr = kernel_baseaddr_r;
+	assign feature_baseaddr = feature_baseaddr_r;
+	assign feature_width = feature_width_r;
+	assign feature_height = feature_height_r;
+	assign feature_chin = feature_chin_r;
+	assign feature_chout = feature_chout_r;
+	assign output_baseaddr = output_baseaddr_r;
+	assign output_width = output_width_r;
+	assign output_height = output_height_r;
 	//-----------------------------------------------------------------------------------------------
 	// User logic ends
 
