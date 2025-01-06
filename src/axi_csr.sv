@@ -4,12 +4,11 @@
 	module axi_csr #
 	(
 		// Width of S_AXI data bus
-		parameter integer C_S_AXI_DATA_WIDTH	= `XLEN,
+		parameter integer C_S_AXI_DATA_WIDTH	= `DATA_WIDTH,
 		// Width of S_AXI address bus
 		parameter integer C_S_AXI_ADDR_WIDTH	= `CSR_ADDR_WIDTH
 	)
 	(
-		//###############################################################################################
 		//-----------------------------------------------------------------------------------------------
 		output wire [7:0] kernel_size, 	
 		output wire [7:0] stride, 		
@@ -17,9 +16,6 @@
 		output wire has_bias,
 		output wire has_relu,
 		output wire conv_mode,
-		input wire running,
-		input wire conv_done,
-		input wire exception,
 		output wire start,
 		output wire [`DATA_RANGE] kernel_baseaddr,
 		output wire [`DATA_RANGE] feature_baseaddr,
@@ -30,6 +26,10 @@
 		output wire [`DATA_RANGE] output_baseaddr,
 		output wire [`DATA_RANGE] output_width,
 		output wire [`DATA_RANGE] output_height,
+		//###############################################################################################
+		input wire running,
+		input wire compute_done,
+		input wire exception,
 		//-----------------------------------------------------------------------------------------------
 		// Global Clock Signal
 		input wire  S_AXI_ACLK,
@@ -114,16 +114,13 @@
 	//----------------------------------------------
 	//-- Signals for user logic register space
 	//------------------------------------------------
-	wire running;   			// read-only
-	wire conv_done; 			// read-only
-	wire exception; 			// read-only
 	reg [7:0] 	kernel_size_r;
 	reg [7:0] 	stride_r;
 	reg [7:0] 	padding_r;
 	reg 		has_bias_r;
 	reg 		has_relu_r;
 	reg 		conv_mode_r;
-	reg  		start_r;	 	// auto-clear
+	reg  		start_r;	// auto-clear
 	reg [C_S_AXI_DATA_WIDTH-1:0]	kernel_baseaddr_r;
 	reg [C_S_AXI_DATA_WIDTH-1:0]	feature_baseaddr_r;
 	reg [C_S_AXI_DATA_WIDTH-1:0]	feature_width_r;
@@ -170,7 +167,7 @@
 	               if(S_AXI_ARESETN == 1'b1)                                  
 	                 begin                                 
 	                   axi_awready <= 1'b1;                                 
-	                   axi_wready <= 1'b1;                                 
+	                   axi_wready <= ~running;                                 
 	                   state_write <= Waddr;                                 
 	                 end                                 
 	               else state_write <= state_write;                                 
@@ -247,7 +244,7 @@
 	      output_width_r 		<= '0;
 	      output_height_r 		<= '0;
 	    end 
-	  else if (S_AXI_WVALID && ~running) // write csr register when NOT in RUNNING state
+	  else if (S_AXI_WVALID)
   	      begin
 	        case ( (S_AXI_AWVALID) ? S_AXI_AWADDR[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] : axi_awaddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] )
 	          4'h0: begin
@@ -438,7 +435,7 @@
 	always @* begin
 		case (axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB])
 			4'd0:
-				S_AXI_RDATA = {kernel_size_r, stride_r, padding_r, has_bias_r, has_relu_r, conv_mode_r, 1'b0, running, conv_done, exception, start_r};
+				S_AXI_RDATA = {kernel_size_r, stride_r, padding_r, has_bias_r, has_relu_r, conv_mode_r, 1'b0, running, compute_done, exception, start_r};
 			4'd1:
 				S_AXI_RDATA = kernel_baseaddr_r;
 			4'd2:
@@ -462,9 +459,8 @@
 		endcase
 	end
 	
-	//###############################################################################################
 	//-----------------------------------------------------------------------------------------------
-	// Add user logic here
+	//# OUTPUT ASSIGNMENT
 	assign kernel_size = kernel_size_r;
 	assign stride = stride_r;
 	assign padding = padding_r;
@@ -482,6 +478,5 @@
 	assign output_width = output_width_r;
 	assign output_height = output_height_r;
 	//-----------------------------------------------------------------------------------------------
-	// User logic ends
 
 	endmodule

@@ -36,7 +36,10 @@ module cu (
 
     assign illegal_uop = |pe_illegal_uop;
     assign wb_busy = state != IDLE;
+    assign wb_addr = wb_addr_r;
 
+
+    ///////////////////////////////////////////////////////////////////////////
     // PE ARRAY
     genvar i;
     generate
@@ -70,7 +73,6 @@ module cu (
             result_out <= '0;
             result_out_valid <= '0;
             wb_addr_r <= '0;
-            wb_addr <= '0;
         end
         else begin
             case (state)

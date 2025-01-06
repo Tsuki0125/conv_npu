@@ -3,9 +3,10 @@
 // Module Name: instgen
 // Description: generate CONV stride control signals (instructions) for decoder
 // Additional Comments:
-// The addresses in the csr port refer to the SOC memory mapping addresses.
-// The addresses in the decoder port refer to the BRAM port addresses.
-// instgen module should change the SOC memory mapping addresses to the BRAM port addresses.
+// The addresses in the csr port IS the SOC Memory-Mapping addr: 
+// e.g.: [`ADDR_RANGE]
+// The addresses in the decoder port IS the BRAM Native addr:
+// e.g.: [`FRAM_ADDR_RANGE], [`KRAM_ADDR_RANGE]
 //------------------------------------------------------------------------------
 
 module instgen (
@@ -16,11 +17,11 @@ module instgen (
     input [`DATA_RANGE] feature_height,
     input [`DATA_RANGE] feature_chin,
     input [`DATA_RANGE] feature_chout,
-    input [`DATA_RANGE] kernel_sizeh,
-    input [`DATA_RANGE] kernel_sizew,
+    input [7:0] kernel_sizeh,
+    input [7:0] kernel_sizew,
     input has_bias,
     input has_relu,
-    input [`DATA_RANGE] stride,
+    input [7:0] stride,
     input [`ADDR_RANGE] output_baseaddr,
     input [`DATA_RANGE] output_width,
     input [`DATA_RANGE] output_height,
@@ -33,17 +34,16 @@ module instgen (
     output reg [`DATA_RANGE]        stride_feature_chout,
     output reg [`DATA_RANGE]        stride_feature_width,
     output reg [`DATA_RANGE]        stride_feature_height,
-    output reg [`DATA_RANGE]        stride_kernel_sizeh,
-    output reg [`DATA_RANGE]        stride_kernel_sizew,
+    output reg [7:0]                stride_kernel_sizeh,
+    output reg [7:0]                stride_kernel_sizew,
     output reg                      stride_has_bias,
     output reg                      stride_has_relu,
-    output inst_valid,
-    input  decoder_ready,
     output reg [`FRAM_ADDR_RANGE]   stride_wb_baseaddr,
     output reg [`DATA_RANGE]        stride_wb_ch_offset,
-
+    output inst_valid,
+    input  decoder_ready,
     //////////////////////
-    output conv_complete,
+    output compute_done,
     input wire clk,
     input wire rst_n
 );
@@ -67,14 +67,15 @@ reg [`DATA_RANGE]       feature_chin_r;
 reg [`DATA_RANGE]       feature_chout_r;
 reg [`DATA_RANGE]       feature_width_r;
 reg [`DATA_RANGE]       feature_height_r;
-reg [`DATA_RANGE]       kernel_sizeh_r;
-reg [`DATA_RANGE]       kernel_sizew_r;
+reg [7:0]               kernel_sizeh_r;
+reg [7:0]               kernel_sizew_r;
 reg                     has_bias_r;
 reg                     has_relu_r;
-reg [`DATA_RANGE]       stride_r;
-reg [`FRAM_ADDR_RANGE]  wb_baseaddr_r;
+reg [7:0]               stride_r;
+reg [`ADDR_RANGE]       wb_baseaddr_r;
 reg [`DATA_RANGE]       output_width_r;
 reg [`DATA_RANGE]       output_height_r;
+
 // conv stride control signals
 reg [`DATA_RANGE]       position_x, position_x_nxt;
 reg [`DATA_RANGE]       position_y, position_y_nxt;
@@ -82,14 +83,11 @@ reg [`DATA_RANGE]       feature_flat_offset;
 reg [`FRAM_ADDR_RANGE]  wbaddr_offset;
 reg conv_done;
 
-// wire row_overflow =  position_x_nxt >= feature_width_r;
-// wire col_overflow =  position_y_nxt >= feature_height_r;
-
 
 //###############################################################
 assign instgen_ready = (state == IDLE);
 assign inst_valid = (state == EXEC);
-assign conv_complete = (state == DONE);
+assign compute_done = (state == DONE);
 
 // CSR CMD sync process:
 always @(posedge clk or negedge rst_n) begin
@@ -228,11 +226,12 @@ always @* begin
     endcase
 end
 
-//decoder output assignment
-wire [`FRAM_ADDR_RANGE] f_offset = (position_y - kernel_sizeh_r + 1) * feature_width_r + position_x - kernel_sizew_r + 1; 
+// handy assignment:
+wire [`DATA_RANGE] f_offset = (position_y - kernel_sizeh_r + 1) * feature_width_r + position_x - kernel_sizew_r + 1; 
+// stride instruction gen: 
 always @* begin
     stride_feature_baseaddr = feature_baseaddr_r[2+:`FRAM_ADDR_WIDTH] + f_offset;
-    stride_kernel_baseaddr = kernel_baseaddr_r[2+:`KRAM_BANKADDR_WIDTH];
+    stride_kernel_baseaddr = kernel_baseaddr_r[2+:`KRAM_ADDR_WIDTH];
     stride_feature_chin = feature_chin_r;
     stride_feature_chout = feature_chout_r;
     stride_feature_width = feature_width_r;
@@ -241,7 +240,7 @@ always @* begin
     stride_kernel_sizew = kernel_sizew_r;
     stride_has_bias = has_bias_r;
     stride_has_relu = has_relu_r;
-    stride_wb_baseaddr = wb_baseaddr_r + wbaddr_offset;
+    stride_wb_baseaddr = wb_baseaddr_r[2+:`FRAM_ADDR_WIDTH] + wbaddr_offset;
     stride_wb_ch_offset = output_width_r * output_height_r;
 end
 

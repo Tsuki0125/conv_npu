@@ -3,7 +3,9 @@
 // Module Name: decoder
 // Description: generate control signals for compute unit
 // Additional Comments:
-// The addresses in this module refer to the BRAM port addresses, NOT the SOC memory mapping addresses.
+// ADDRs in instgen port is BRAM Native ADDR
+// The output fram_addr is BRAM Native ADDR
+// The output kram_addr is kernel-weight broadcast BANK-ADDR(SIMD)
 //------------------------------------------------------------------------------
 
 module decoder (
@@ -33,7 +35,8 @@ module decoder (
     input wb_busy,
     // BRAM port
     output logic [`FRAM_ADDR_RANGE] fram_addr,
-    output logic [`KRAM_ADDR_RANGE] kram_addr,
+    output logic [`KRAM_BANKADDR_RANGE] kram_addr,
+    output logic which_slot,    // Ping-Pong BUFFER sel
     //////////////////////
     input wire clk,
     input wire rst_n
@@ -285,12 +288,12 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 assign decoder_ready = (state == IDLE);
-
+assign which_slot = kernel_baseaddr_r[`KRAM_ADDR_WIDTH-1];
 // BRAM addr
-wire [`XLEN-1:0] k_offset = ch_cnt * kernel_flat_offset + row_cnt * kernel_sizew_r + col_cnt;
-wire [`XLEN-1:0] f_offset = ch_cnt * feature_flat_offset + row_cnt * feature_width_r + col_cnt;
+wire [`DATA_RANGE] k_offset = ch_cnt * kernel_flat_offset + row_cnt * kernel_sizew_r + col_cnt;
+wire [`DATA_RANGE] f_offset = ch_cnt * feature_flat_offset + row_cnt * feature_width_r + col_cnt;
 assign fram_addr = feature_baseaddr_r + f_offset;
-assign kram_addr = kernel_baseaddr_r + k_offset;
+assign kram_addr = kernel_baseaddr_r[`KRAM_BANKADDR_RANGE] + k_offset;
 assign cu_wb_baseaddr = wb_baseaddr_r;
 assign cu_wb_ch_offset = wb_ch_offset_r;
     
