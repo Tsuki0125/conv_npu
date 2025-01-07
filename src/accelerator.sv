@@ -57,6 +57,10 @@ module accelerator #
 	input clk,
 	input rst_n 
 );
+
+// bank conflict
+wire bank_conflict;
+
 //## SOC ADDR(byte indexed)  <>  BRAM Native ADDR
 wire [`FRAM_ADDR_RANGE] fram_addr = fram_addr_byteidx[2 +: `FRAM_ADDR_WIDTH];
 wire [`KRAM_ADDR_RANGE] kram_addr = kram_addr_byteidx[2 +: `KRAM_ADDR_WIDTH];
@@ -79,7 +83,7 @@ wire has_relu;
 wire conv_mode;  // 0 for conv1d; 1 for conv2d
 wire start;
 wire running = ~instgen_ready;
-wire exception = illegal_uop;
+wire exception = illegal_uop | bank_conflict;
 //#################  feature BRAM PORTA  #################
 wire [`FRAM_BANKADDR_RANGE] frambank_addr0 [`FRAM_BANK_NUM-1:0];
 wire [`DATA_WIDTH-1:0] frambank_wdata0 [`FRAM_BANK_NUM-1:0];
@@ -139,7 +143,7 @@ wire which_slot;
 //###############  CU  #############
 // cu.bramdata
 wire signed [`DATA_RANGE] kernel_data  [`PE_NUM-1:0];
-wire signed [`DATA_RANGE] feature_data [`PE_NUM-1:0];
+wire signed [`DATA_RANGE] feature_data;
 // cu.output 
 wire signed [`DATA_RANGE] result_out;
 wire [`FRAM_ADDR_RANGE] wb_addr;
@@ -240,6 +244,39 @@ cu  u_cu(
 	.wb_ch_offset 	(cu_wb_ch_offset),
 	.*
 );
+
+
+fram_router u_fram_router (
+	// read port
+	.rp_addr		(shared_fram_addr),
+	.rp_rdata		(feature_data),
+	// write port
+	.wp_addr		(wb_addr),
+	.wp_wdata		(result_out),
+	.wp_en			(result_out_valid),
+	// bram portb
+	.bram_addr		(frambank_addr1),
+	.bram_wdata		(frambank_wdata1),
+	.bram_we		(frambank_we1),
+	.bram_en 		(frambank_en1),
+	.bram_rdata		(frambank_rdata1),
+	.bank_conflict	(bank_conflict)
+);
+
+kram_router u_kram_router (
+	// read port
+	.slot_sel		(which_slot),
+	.addr 			(shared_kram_addr),
+	.rdata 			(kernel_data),
+	// bram portb
+	.bram_addr		(krambank_addr1),
+	.bram_wdata		(krambank_wdata1),
+	.bram_we		(krambank_we1),
+	.bram_en 		(krambank_en1),
+	.bram_rdata		(krambank_rdata1)
+);
+
+
     
 //#########  bram IP for feature  ##########
 generate
@@ -285,6 +322,9 @@ generate
 		);
 	end
 endgenerate
+
+
+
 
 //////////////////////////////////////////////////////////////////////////
 // module accelerator end

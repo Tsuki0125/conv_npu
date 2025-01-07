@@ -3,7 +3,7 @@
 module cu (
     // BRAM ports
     input signed [`DATA_RANGE] kernel_data  [`PE_NUM-1:0],
-    input signed [`DATA_RANGE] feature_data [`PE_NUM-1:0],
+    input signed [`DATA_RANGE] feature_data,
     // decoder ports
     input [`PE_NUM-1:0] in_valid  ,
     input [`PE_NUM-1:0] out_en    ,
@@ -45,7 +45,7 @@ module cu (
     generate
         for (i = 0; i < `PE_NUM; i = i + 1) begin : pe_array
             pe u_pe (
-                .x(feature_data[i]),
+                .x(feature_data),
                 .weight(kernel_data[i]),
                 .in_valid(in_valid[i]),
                 .flush(flush),
