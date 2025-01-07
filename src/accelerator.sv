@@ -281,7 +281,7 @@ kram_router u_kram_router (
 //#########  bram IP for feature  ##########
 generate
 	for (genvar i=0; i<`FRAM_BANK_NUM; i=i+1) begin: gen_fram
-		blk_mem_gen_feature u_fram (
+		bram_feature u_fram (
 			//port A
 			.addra		(frambank_addr0[i]),
 			.clka		(clk),
