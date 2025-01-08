@@ -60,11 +60,9 @@ module accelerator #
 
 // bank conflict
 wire bank_conflict;
-
 //## SOC ADDR(byte indexed)  <>  BRAM Native ADDR
 wire [`FRAM_ADDR_RANGE] fram_addr = fram_addr_byteidx[2 +: `FRAM_ADDR_WIDTH];
 wire [`KRAM_ADDR_RANGE] kram_addr = kram_addr_byteidx[2 +: `KRAM_ADDR_WIDTH];
-
 //################# CSR PORT  #################
 wire [`DATA_RANGE] kernel_baseaddr;
 wire [`DATA_RANGE] feature_baseaddr;
@@ -82,8 +80,8 @@ wire has_bias;
 wire has_relu;
 wire conv_mode;  // 0 for conv1d; 1 for conv2d
 wire start;
-wire running = ~instgen_ready;
-wire exception = illegal_uop | bank_conflict;
+wire running;
+wire exception;
 //#################  feature BRAM PORTA  #################
 wire [`FRAM_BANKADDR_RANGE] frambank_addr0 [`FRAM_BANK_NUM-1:0];
 wire [`DATA_WIDTH-1:0] frambank_wdata0 [`FRAM_BANK_NUM-1:0];
@@ -111,7 +109,6 @@ wire [`DATA_WIDTH-1:0] krambank_rdata1 [`KRAM_BANK_NUM-1:0];
 //#################  instgen   #################
 wire [7:0] kernel_sizeh = conv_mode ? kernel_size : 1;
 wire [7:0] kernel_sizew = kernel_size;
-wire csrcmd_valid = start;
 wire instgen_ready;
 wire [`FRAM_ADDR_RANGE]   stride_feature_baseaddr;
 wire [`KRAM_ADDR_RANGE]   stride_kernel_baseaddr;
@@ -149,9 +146,35 @@ wire signed [`DATA_RANGE] result_out;
 wire [`FRAM_ADDR_RANGE] wb_addr;
 wire result_out_valid;
 wire illegal_uop;
+
+
+
+
+
 //##########################################################
 //#################  module Instantiation  #################
 axi_csr  u_axi_csr (
+	// csr port
+	.kernel_size		(kernel_size),
+	.stride				(stride),
+	.padding			(padding),
+	.has_bias			(has_bias),
+	.has_relu			(has_relu),
+	.conv_mode			(conv_mode),
+	.start				(start),
+	.kernel_baseaddr	(kernel_baseaddr),
+	.feature_baseaddr	(feature_baseaddr),
+	.feature_width		(feature_width),
+	.feature_height		(feature_height),
+	.feature_chin		(feature_chin),
+	.feature_chout		(feature_chout),
+	.output_baseaddr	(output_baseaddr),
+	.output_width		(output_width),
+	.output_height		(output_height),
+	.running			(running),
+	.compute_done		(compute_done),
+	.exception			(exception),
+	// axi-slave port
 	.S_AXI_ACLK			(s00_axi_aclk),
 	.S_AXI_ARESETN		(s00_axi_aresetn),
 	.S_AXI_AWADDR		(s00_axi_awaddr),
@@ -172,12 +195,11 @@ axi_csr  u_axi_csr (
 	.S_AXI_RDATA		(s00_axi_rdata),
 	.S_AXI_RRESP		(s00_axi_rresp),
 	.S_AXI_RVALID		(s00_axi_rvalid),
-	.S_AXI_RREADY		(s00_axi_rready),
-	.*
+	.S_AXI_RREADY		(s00_axi_rready)
 );
 
 
-//#####################  bram_bank_mux for feature sram  ####################
+//#####################  feature sram PORTA  ####################
 bram_bank_mux #(
 	.ADDR_WIDTH			(`FRAM_ADDR_WIDTH),
 	.DATA_WIDTH			(`DATA_WIDTH),
@@ -195,8 +217,7 @@ bram_bank_mux #(
 	.bram_en	(frambank_en0),
 	.bram_rdata	(frambank_rdata0)
 );
-
-//####################  bram_bank_mux for kernel sram  ###################
+//####################  kernel sram PORTB  ###################
 bram_bank_mux #(
 	.ADDR_WIDTH			(`KRAM_ADDR_WIDTH),
 	.DATA_WIDTH			(`DATA_WIDTH),
@@ -217,11 +238,47 @@ bram_bank_mux #(
 
 //##############  instgen  ##############
 instgen u_instgen( 
-	.*
+    // csr port
+	.feature_baseaddr       (feature_baseaddr),
+    .kernel_baseaddr        (kernel_baseaddr),
+    .feature_width          (feature_width),
+    .feature_height         (feature_height),
+    .feature_chin           (feature_chin),
+    .feature_chout          (feature_chout),
+    .kernel_sizeh           (kernel_sizeh),
+    .kernel_sizew           (kernel_sizew),
+    .has_bias               (has_bias),
+    .has_relu               (has_relu),
+    .stride                 (stride),
+    .output_baseaddr        (output_baseaddr),
+    .output_height          (output_height),
+    .output_width           (output_width),
+    .csrcmd_valid           (start),
+    .instgen_ready          (instgen_ready),
+    // decoder port
+    .stride_feature_baseaddr    (stride_feature_baseaddr),
+    .stride_kernel_baseaddr     (stride_kernel_baseaddr),
+    .stride_feature_chin        (stride_feature_chin),
+    .stride_feature_chout       (stride_feature_chout),
+    .stride_feature_width       (stride_feature_width),
+    .stride_feature_height      (stride_feature_height),
+    .stride_kernel_sizeh        (stride_kernel_sizeh),
+    .stride_kernel_sizew        (stride_kernel_sizew),
+    .stride_has_bias            (stride_has_bias),
+    .stride_has_relu            (stride_has_relu),
+    .stride_wb_baseaddr         (stride_wb_baseaddr),
+    .stride_wb_ch_offset        (stride_wb_ch_offset),
+    .inst_valid                 (inst_valid),
+    .decoder_ready              (decoder_ready),
+    //////////////
+    .compute_done               (compute_done),
+    .clk                        (clk),
+    .rst_n                      (rst_n)
 );
 
 //##############  decoder  ############
 decoder u_decoder(
+	// instgen port
 	.feature_baseaddr	(stride_feature_baseaddr),
 	.kernel_baseaddr	(stride_kernel_baseaddr),
 	.feature_chin		(stride_feature_chin),
@@ -234,15 +291,48 @@ decoder u_decoder(
 	.has_relu			(stride_has_relu),
 	.wb_baseaddr 		(stride_wb_baseaddr),
 	.wb_ch_offset		(stride_wb_ch_offset),	
-	.fram_addr	(shared_fram_addr),
-	.kram_addr	(shared_kram_addr),
-	.*
+	.inst_valid			(inst_valid),
+	.decoder_ready		(decoder_ready),
+	// cu port
+	.in_valid			(in_valid),
+	.out_en				(out_en),
+	.calc_bias			(calc_bias),
+	.calc_relu			(calc_relu),
+	.flush				(flush),
+	.cu_wb_baseaddr		(cu_wb_baseaddr),
+	.cu_wb_ch_offset	(cu_wb_ch_offset),
+    .wb_busy            (wb_busy),
+	// bram port
+	.fram_addr	        (shared_fram_addr),
+	.kram_addr	        (shared_kram_addr),
+    .which_slot         (which_slot),
+    //////////////////
+    .clk                (clk),
+    .rst_n              (rst_n)
 );
+
 //#############  cu  ##############
 cu  u_cu(
+    // bram port
+    .kernel_data    (kernel_data),
+    .feature_data   (feature_data),
+    // decoder port
+    .in_valid       (in_valid),
+    .out_en         (out_en),
+    .calc_bias      (calc_bias),
+    .calc_relu      (calc_relu),
+    .flush          (flush),
 	.wb_baseaddr 	(cu_wb_baseaddr),
 	.wb_ch_offset 	(cu_wb_ch_offset),
-	.*
+    .wb_busy        (wb_busy),
+	// result port
+    .result_out     (result_out),
+    .wb_addr        (wb_addr),
+    .result_out_valid   (result_out_valid),
+    .illegal_uop    (illegal_uop),
+    ///////////////
+    .clk    (clk),
+    .rst_n  (rst_n)
 );
 
 
@@ -323,9 +413,10 @@ generate
 	end
 endgenerate
 
-
-
-
+//#####################################################
+//### output assignments
+assign exception = illegal_uop | bank_conflict;
+assign running = ~instgen_ready;
 //////////////////////////////////////////////////////////////////////////
 // module accelerator end
 endmodule
