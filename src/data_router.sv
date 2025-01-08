@@ -30,7 +30,7 @@ module fram_router (
 
     // MUX logic
     always_comb begin
-        for (int i = 0; i < BANK_NUM; i++) begin
+        for (int i = 0; i < `FRAM_BANK_NUM; i++) begin
             if (bank_sel_wp == i) begin
                 bram_addr[i]  = wp_addr;
                 bram_wdata[i] = wp_wdata;

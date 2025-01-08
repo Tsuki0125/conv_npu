@@ -139,10 +139,10 @@ wire [`KRAM_BANKADDR_RANGE] shared_kram_addr;
 wire which_slot;
 //###############  CU  #############
 // cu.bramdata
-wire signed [`DATA_RANGE] kernel_data  [`PE_NUM-1:0];
-wire signed [`DATA_RANGE] feature_data;
+wire [`DATA_RANGE] kernel_data  [`PE_NUM-1:0];
+wire [`DATA_RANGE] feature_data;
 // cu.output 
-wire signed [`DATA_RANGE] result_out;
+wire [`DATA_RANGE] result_out;
 wire [`FRAM_ADDR_RANGE] wb_addr;
 wire result_out_valid;
 wire illegal_uop;
@@ -394,7 +394,7 @@ endgenerate
 //##########  bram ip for kernel  ###########
 generate
 	for (genvar i=0; i<`KRAM_BANK_NUM; i=i+1) begin: gen_kram
-		blk_mem_gen_kernel u_kram (
+		bram_kernel u_kram (
 			//port A
 			.addra		(krambank_addr0[i]),
 			.clka		(clk),

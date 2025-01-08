@@ -2,8 +2,8 @@
 
 module cu (
     // BRAM ports
-    input signed [`DATA_RANGE] kernel_data  [`PE_NUM-1:0],
-    input signed [`DATA_RANGE] feature_data,
+    input [`DATA_RANGE] kernel_data  [`PE_NUM-1:0],
+    input [`DATA_RANGE] feature_data,
     // decoder ports
     input [`PE_NUM-1:0] in_valid  ,
     input [`PE_NUM-1:0] out_en    ,
@@ -14,7 +14,7 @@ module cu (
     input [`DATA_RANGE] wb_ch_offset,
     output logic wb_busy,
     // output ports
-    output logic signed [`DATA_RANGE] result_out,
+    output logic [`DATA_RANGE] result_out,
     output logic [`FRAM_ADDR_RANGE] wb_addr,
     output logic result_out_valid,
     output logic illegal_uop,
@@ -25,11 +25,11 @@ module cu (
     localparam IDLE = 2'b00;
     localparam OUTPUT = 2'b01; 
 
-    wire signed [`DATA_RANGE] pe_result [`PE_NUM-1:0];
+    wire [`DATA_RANGE] pe_result [`PE_NUM-1:0];
     wire [`PE_NUM-1:0]  pe_out_valid   ;
     wire [`PE_NUM-1:0]  pe_illegal_uop ;
 
-    reg signed [`DATA_RANGE] result_r [`PE_NUM-1:0];
+    reg [`DATA_RANGE] result_r [`PE_NUM-1:0];
     reg [`FRAM_ADDR_RANGE]   wb_addr_r;
     reg [31:0] counter;
     reg [1:0] state;
@@ -52,7 +52,7 @@ module cu (
                 .out_en(out_en[i]),
                 .calc_bias(calc_bias[i]),
                 .calc_relu(calc_relu[i]),
-                .result_r(pe_result[i]),
+                .result_out(pe_result[i]),
                 .out_valid_r(pe_out_valid[i]),
                 .illegal_uop(pe_illegal_uop[i]),
                 .clk(clk),
