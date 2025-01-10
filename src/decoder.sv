@@ -202,6 +202,9 @@ always @(*) begin
         FLUSH: begin
             next_state = IDLE;
         end
+        default: begin
+            next_state = IDLE;
+        end
     endcase
 end
 

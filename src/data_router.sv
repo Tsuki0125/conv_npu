@@ -26,7 +26,7 @@ module fram_router (
     logic [$clog2(`FRAM_BANK_NUM)-1:0] bank_sel_rp, bank_sel_wp;
     assign bank_sel_rp = rp_addr[`FRAM_ADDR_WIDTH-1:`FRAM_ADDR_WIDTH-$clog2(`FRAM_BANK_NUM)];
     assign bank_sel_wp = wp_addr[`FRAM_ADDR_WIDTH-1:`FRAM_ADDR_WIDTH-$clog2(`FRAM_BANK_NUM)];
-    assign bank_conflict = bank_sel_rp == bank_sel_wp;
+    assign bank_conflict = (bank_sel_rp == bank_sel_wp) && wp_en;
 
     // MUX logic
     always_comb begin

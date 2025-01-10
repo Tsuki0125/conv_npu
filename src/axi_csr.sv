@@ -167,28 +167,33 @@
 	               if(S_AXI_ARESETN == 1'b1)                                  
 	                 begin                                 
 	                   axi_awready <= 1'b1;                                 
-	                   axi_wready <= ~running;                                 
+	                //    axi_wready <= ~running; 
+					   axi_wready <= '0;                                
 	                   state_write <= Waddr;                                 
 	                 end                                 
 	               else state_write <= state_write;                                 
 	             end                                 
-	           Waddr:        //At this state, slave is ready to receive address along with corresponding control signals and first data packet. Response valid is also handled at this state                                 
+	           Waddr:                                       
 	             begin                                 
 	               if (S_AXI_AWVALID && S_AXI_AWREADY)                                 
 	                  begin                                 
 	                    axi_awaddr <= S_AXI_AWADDR;                                 
-	                    if(S_AXI_WVALID)                                  
-	                      begin                                   
-	                        axi_awready <= 1'b1;                                 
-	                        state_write <= Waddr;                                 
-	                        axi_bvalid <= 1'b1;                                 
-	                      end                                 
-	                    else                                  
-	                      begin                                 
-	                        axi_awready <= 1'b0;                                 
-	                        state_write <= Wdata;                                 
-	                        if (S_AXI_BREADY && axi_bvalid) axi_bvalid <= 1'b0;                                 
-	                      end                                 
+	                    // if(S_AXI_WVALID)                                  
+	                    //   begin                                   
+	                    //     axi_awready <= 1'b1;                                 
+	                    //     state_write <= Waddr;                                 
+	                    //     axi_bvalid <= 1'b1;                                 
+	                    //   end                                 
+	                    // else                                  
+	                    //   begin                                 
+	                    //     axi_awready <= 1'b0;                                 
+	                    //     state_write <= Wdata;                                 
+	                    //     if (S_AXI_BREADY && axi_bvalid) axi_bvalid <= 1'b0;                                 
+	                    //   end    
+						axi_awready <= 1'b0;                                 
+	                    state_write <= Wdata;
+						axi_wready <= '1;
+						if (S_AXI_BREADY && axi_bvalid) axi_bvalid <= 1'b0;                             
 	                  end                                 
 	               else                                  
 	                  begin                                 
@@ -196,11 +201,12 @@
 	                    if (S_AXI_BREADY && axi_bvalid) axi_bvalid <= 1'b0;                                 
 	                   end                                 
 	             end                                 
-	          Wdata:        //At this state, slave is ready to receive the data packets until the number of transfers is equal to burst length                                 
+	          Wdata:                                      
 	             begin                                 
 	               if (S_AXI_WVALID)                                 
 	                 begin                                 
-	                   state_write <= Waddr;                                 
+	                   state_write <= Waddr;
+					   axi_wready <= '0;                                  
 	                   axi_bvalid <= 1'b1;                                 
 	                   axi_awready <= 1'b1;                                 
 	                 end                                 
