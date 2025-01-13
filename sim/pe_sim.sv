@@ -59,7 +59,7 @@ task automatic normal_mac(input int num_mac);
             in_valid = '1;
         end
     end
-endtask //automatic
+endtask 
 
 task automatic illegal_op(input int num_mac);
     x = `XLEN'd1;
@@ -83,7 +83,7 @@ task automatic illegal_op(input int num_mac);
             in_valid = '1;
         end
     end
-endtask //automatic
+endtask
 
 pe DUT(.*);
 
