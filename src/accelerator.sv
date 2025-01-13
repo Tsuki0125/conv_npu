@@ -18,8 +18,6 @@ module accelerator #
 		parameter integer BYTE_ADDR_WIDTH_KRAM = `KRAM_ADDR_WIDTH + 2
 	) (
     // AXI4-CSR Interface s00_axi
-	input wire  s00_axi_aclk,
-	input wire  s00_axi_aresetn,
 	input wire [C_S_AXI_ADDR_WIDTH-1 : 0] s00_axi_awaddr,
 	input wire [2 : 0] s00_axi_awprot,
 	input wire  s00_axi_awvalid,
@@ -175,8 +173,8 @@ axi_csr  u_axi_csr (
 	.compute_done		(compute_done),
 	.exception			(exception),
 	// axi-slave port
-	.S_AXI_ACLK			(s00_axi_aclk),
-	.S_AXI_ARESETN		(s00_axi_aresetn),
+	.S_AXI_ACLK			(clk),
+	.S_AXI_ARESETN		(rst_n),
 	.S_AXI_AWADDR		(s00_axi_awaddr),
 	.S_AXI_AWPROT		(s00_axi_awprot),
 	.S_AXI_AWVALID		(s00_axi_awvalid),
