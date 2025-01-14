@@ -60,8 +60,8 @@ end
 //#########################################################
 initial begin
 // for VCS simulator:
-$fsdbDumpfile("./wave");
-$fsdbDumpvars;
+// $fsdbDumpfile("./wave");
+// $fsdbDumpvars;
 /////////////////////
 // Initialize signals
 fram_addr_byteidx   = '0;
