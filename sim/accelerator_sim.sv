@@ -59,6 +59,10 @@ end
 
 //#########################################################
 initial begin
+// for VCS simulator:
+$fsdbDumpfile("./wave");
+$fsdbDumpvars;
+/////////////////////
 // Initialize signals
 fram_addr_byteidx   = '0;
 fram_wdata          = '0;
@@ -106,7 +110,9 @@ normal_read(32'h40000024);
 normal_write(32'h40000000, 32'h0302FFE1);
 normal_read(32'h40000000);
 
-
+wait(compute_done);
+#100;
+$finish;
 end
 
 
