@@ -119,6 +119,7 @@ wire [7:0]        	  	  stride_kernel_sizew;
 wire                      stride_has_bias;
 wire                      stride_has_relu;
 wire inst_valid;
+wire tlast;
 wire decoder_ready;
 wire [`FRAM_ADDR_RANGE]   stride_wb_baseaddr;
 wire [`DATA_RANGE]        stride_wb_ch_offset;
@@ -132,6 +133,7 @@ wire                flush     ;
 wire  [`FRAM_ADDR_RANGE] cu_wb_baseaddr;
 wire  [`DATA_RANGE]      cu_wb_ch_offset;
 wire wb_busy;
+wire last_uop;
 //################  decoder: shared srams port 
 wire [`FRAM_ADDR_RANGE] shared_fram_addr;
 wire [`KRAM_BANKADDR_RANGE] shared_kram_addr;
@@ -268,9 +270,9 @@ instgen u_instgen(
     .stride_wb_baseaddr         (stride_wb_baseaddr),
     .stride_wb_ch_offset        (stride_wb_ch_offset),
     .inst_valid                 (inst_valid),
+	.tlast						(tlast),
     .decoder_ready              (decoder_ready),
     //////////////
-    .compute_done               (compute_done),
     .clk                        (clk),
     .rst_n                      (rst_n)
 );
@@ -291,6 +293,7 @@ decoder u_decoder(
 	.wb_baseaddr 		(stride_wb_baseaddr),
 	.wb_ch_offset		(stride_wb_ch_offset),	
 	.inst_valid			(inst_valid),
+	.tlast				(tlast),
 	.decoder_ready		(decoder_ready),
 	// cu port
 	.valid_pe_num		(valid_pe_num),
@@ -302,6 +305,7 @@ decoder u_decoder(
 	.cu_wb_baseaddr		(cu_wb_baseaddr),
 	.cu_wb_ch_offset	(cu_wb_ch_offset),
     .wb_busy            (wb_busy),
+	.last_uop			(last_uop),
 	// bram port
 	.fram_addr	        (shared_fram_addr),
 	.kram_addr	        (shared_kram_addr),
@@ -326,11 +330,13 @@ cu  u_cu(
 	.wb_baseaddr 	(cu_wb_baseaddr),
 	.wb_ch_offset 	(cu_wb_ch_offset),
     .wb_busy        (wb_busy),
+	.last_uop		(last_uop),
 	// result port
     .result_out     (result_out),
     .wb_addr        (wb_addr),
     .result_out_valid   (result_out_valid),
     .illegal_uop    (illegal_uop),
+	.compute_done	(compute_done),
     ///////////////
     .clk    (clk),
     .rst_n  (rst_n)

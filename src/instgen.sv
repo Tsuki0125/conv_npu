@@ -41,9 +41,9 @@ module instgen (
     output reg [`FRAM_ADDR_RANGE]   stride_wb_baseaddr,
     output reg [`DATA_RANGE]        stride_wb_ch_offset,
     output inst_valid,
+    output reg tlast,
     input  decoder_ready,
     //////////////////////
-    output reg compute_done,
     input wire clk,
     input wire rst_n
 );
@@ -199,7 +199,7 @@ always_ff @(posedge clk or negedge rst_n) begin
 end
 
 always @* begin
-    compute_done = '0;
+    tlast = '0;
     casez (state)
         IDLE: begin
             if (csrcmd_valid & instgen_ready) begin
@@ -214,6 +214,7 @@ always @* begin
         EXEC: begin
             if (conv_done & decoder_ready) begin
                 next_state = DONE;
+                tlast = '1;
             end else begin
                 next_state = EXEC;
             end
@@ -221,7 +222,6 @@ always @* begin
         DONE: begin
             if (decoder_ready) begin
                 next_state = IDLE;
-                compute_done = '1;
             end
             else begin
                 next_state = DONE;

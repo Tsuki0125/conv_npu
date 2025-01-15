@@ -14,11 +14,13 @@ module cu (
     input [`FRAM_ADDR_RANGE] wb_baseaddr,
     input [`DATA_RANGE]      wb_ch_offset,
     output logic wb_busy,
+    input last_uop,
     // output ports
     output logic [`DATA_RANGE] result_out,
     output logic [`FRAM_ADDR_RANGE] wb_addr,
     output logic result_out_valid,
     output logic illegal_uop,
+    output logic compute_done,
     //////////////////////
     input wire clk,
     input wire rst_n
@@ -29,13 +31,14 @@ module cu (
     reg [1:0] state;
     reg [`DATA_RANGE] local_ch_offset_r;
     reg [`DATA_RANGE] local_valid_pe_num;
-
+    reg local_tlast;
     // input reg sync (data from brams have been synced with the primitive reg)
     reg [`PE_NUM-1:0] in_valid_sync  ;
     reg [`PE_NUM-1:0] out_en_sync    ;
     reg [`PE_NUM-1:0] calc_bias_sync ;
     reg [`PE_NUM-1:0] calc_relu_sync ;
     reg               flush_sync     ;
+    reg               last_uop_sync  ;
     reg [`FRAM_ADDR_RANGE]  wb_baseaddr_sync;
     reg [`DATA_RANGE]       wb_ch_offset_sync;
     // output reg
@@ -59,6 +62,7 @@ module cu (
             calc_bias_sync <= '0;
             calc_relu_sync <= '0;
             flush_sync     <= '0;
+            last_uop_sync  <= '0;
             wb_baseaddr_sync <= '0;
             wb_ch_offset_sync <= '0;
         end
@@ -68,6 +72,7 @@ module cu (
             calc_bias_sync <= calc_bias;
             calc_relu_sync <= calc_relu;
             flush_sync     <= flush;
+            last_uop_sync  <= last_uop;
             wb_baseaddr_sync <= wb_baseaddr;
             wb_ch_offset_sync <= wb_ch_offset;
         end 
@@ -108,11 +113,14 @@ module cu (
             wb_addr_r <= '0;
             local_ch_offset_r <= '0;
             local_valid_pe_num <= '0;
+            local_tlast <= '0;
+            compute_done <= '0;
         end
         else begin
             case (state)
                 IDLE: begin
                     wb_addr_r <= wb_baseaddr_sync;
+                    compute_done <= '0;
                     if (|pe_out_valid) begin
                         for (int i = 0; i < `PE_NUM; i++) begin
                             result_r[i] <= pe_result[i];
@@ -121,6 +129,7 @@ module cu (
                         state <= OUTPUT;
                         local_ch_offset_r <= wb_ch_offset_sync;
                         local_valid_pe_num <= valid_pe_num;
+                        local_tlast <= last_uop_sync;
                     end
                 end
                 OUTPUT: begin
@@ -129,17 +138,20 @@ module cu (
                         wb_addr_r  <= wb_addr_r;
                         result_out_valid <= 1;
                         counter <= counter + 1;
+                        compute_done <= '0;
                     end
                     else if (counter < local_valid_pe_num) begin
                         result_out <= result_r[counter];
                         wb_addr_r  <= wb_addr_r + local_ch_offset_r;
                         result_out_valid <= 1;
                         counter <= counter + 1;
+                        compute_done <= '0;
                     end
                     else begin
                         result_out <= '0;
                         result_out_valid <= 0;
                         state <= IDLE;
+                        compute_done <= local_tlast;
                     end
                 end
             endcase

@@ -23,6 +23,7 @@ module decoder (
     input [`FRAM_ADDR_RANGE] wb_baseaddr,
     input [`DATA_RANGE]      wb_ch_offset,
     input inst_valid,
+    input tlast,
     output decoder_ready,
     // CU port
     output reg [`DATA_RANGE] valid_pe_num,
@@ -33,6 +34,7 @@ module decoder (
     output reg               flush     ,
     output [`FRAM_ADDR_RANGE] cu_wb_baseaddr,
     output [`DATA_RANGE]      cu_wb_ch_offset,
+    output reg last_uop,
     input wb_busy,
     // BRAM port
     output logic [`FRAM_ADDR_RANGE] fram_addr,
@@ -72,7 +74,7 @@ reg [`FRAM_ADDR_RANGE]  wb_baseaddr_r;
 reg [`DATA_RANGE]       wb_ch_offset_r;
 reg [`XLEN-1:0] kernel_flat_offset;
 reg [`XLEN-1:0] feature_flat_offset;
-
+reg tlast_r;
 // MAC counters
 reg [`XLEN-1:0] ch_cnt;
 reg [`XLEN-1:0] col_cnt;
@@ -98,6 +100,7 @@ always @(posedge clk or negedge rst_n) begin
         wb_ch_offset_r      <= '0;
         kernel_flat_offset  <= '0;
         feature_flat_offset <= '0;
+        tlast_r             <= '0;
     end
     else if (inst_valid & decoder_ready) begin
         feature_baseaddr_r  <= feature_baseaddr;
@@ -114,6 +117,7 @@ always @(posedge clk or negedge rst_n) begin
         wb_ch_offset_r      <= wb_ch_offset;
         kernel_flat_offset  <= kernel_sizew * kernel_sizeh;
         feature_flat_offset <= feature_width * feature_height;
+        tlast_r             <= tlast;
     end
 end
 
@@ -227,7 +231,8 @@ always @(posedge clk or negedge rst_n) begin
         out_en        <= '0;
         calc_bias     <= '0;
         calc_relu     <= '0;
-        flush         <= '0;   
+        flush         <= '0; 
+        last_uop      <= '0;  
     end
     else begin
         case (state)
@@ -236,14 +241,16 @@ always @(posedge clk or negedge rst_n) begin
                 out_en        <= '0;
                 calc_bias     <= '0;
                 calc_relu     <= '0;
-                flush         <= '0;   
+                flush         <= '0; 
+                last_uop      <= '0;  
             end
             DECODE: begin
                 in_valid      <= '0;
                 out_en        <= '0;
                 calc_bias     <= '0;
                 calc_relu     <= '0;
-                flush         <= '0; 
+                flush         <= '0;
+                last_uop      <= '0; 
             end
             MAC: begin
                 in_valid      <= '1;
@@ -251,6 +258,7 @@ always @(posedge clk or negedge rst_n) begin
                 calc_bias     <= '0;
                 calc_relu     <= '0;
                 flush         <= '0; 
+                last_uop      <= '0;
             end
             BIAS: begin
                 in_valid      <= '1;
@@ -258,6 +266,7 @@ always @(posedge clk or negedge rst_n) begin
                 calc_bias     <= '1;
                 calc_relu     <= '0;
                 flush         <= '0; 
+                last_uop      <= '0;
             end
             RELU: begin
                 in_valid      <= '0;
@@ -265,6 +274,7 @@ always @(posedge clk or negedge rst_n) begin
                 calc_bias     <= '0;
                 calc_relu     <= '1;
                 flush         <= '0; 
+                last_uop      <= '0;
             end
             OUTPUT: begin
                 if (!wb_busy) begin
@@ -272,14 +282,16 @@ always @(posedge clk or negedge rst_n) begin
                     out_en        <= '1;
                     calc_bias     <= '0;
                     calc_relu     <= '0;
-                    flush         <= '0; 
+                    flush         <= '0;
+                    last_uop      <= tlast_r; 
                 end
                 else begin
                     in_valid      <= '0;
                     out_en        <= '0;
                     calc_bias     <= '0;
                     calc_relu     <= '0;
-                    flush         <= '0; 
+                    flush         <= '0;
+                    last_uop      <= tlast_r; 
                 end
             end
             FLUSH: begin
@@ -288,6 +300,7 @@ always @(posedge clk or negedge rst_n) begin
                 calc_bias     <= '0;
                 calc_relu     <= '0;
                 flush         <= '1; 
+                last_uop      <= tlast_r;
             end
         endcase
     end
