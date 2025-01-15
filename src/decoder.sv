@@ -16,8 +16,8 @@ module decoder (
     input [`DATA_RANGE] feature_chout,
     input [`DATA_RANGE] feature_width,
     input [`DATA_RANGE] feature_height,
-    input [`DATA_RANGE] kernel_sizeh,
-    input [`DATA_RANGE] kernel_sizew,
+    input [7:0] kernel_sizeh,
+    input [7:0] kernel_sizew,
     input has_bias,
     input has_relu,
     input [`FRAM_ADDR_RANGE] wb_baseaddr,
@@ -63,8 +63,8 @@ reg [`DATA_RANGE]       feature_chin_r;
 reg [`DATA_RANGE]       feature_chout_r;
 reg [`DATA_RANGE]       feature_width_r;
 reg [`DATA_RANGE]       feature_height_r;
-reg [`DATA_RANGE]       kernel_sizeh_r;
-reg [`DATA_RANGE]       kernel_sizew_r;
+reg [7:0]       kernel_sizeh_r;
+reg [7:0]       kernel_sizew_r;
 reg                     has_bias_r;
 reg                     has_relu_r;
 reg [`FRAM_ADDR_RANGE]  wb_baseaddr_r;
