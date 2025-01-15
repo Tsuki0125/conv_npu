@@ -43,7 +43,7 @@ module instgen (
     output inst_valid,
     input  decoder_ready,
     //////////////////////
-    output compute_done,
+    output reg compute_done,
     input wire clk,
     input wire rst_n
 );
@@ -87,7 +87,6 @@ reg conv_done;
 //###############################################################
 assign instgen_ready = (state == IDLE);
 assign inst_valid = (state == EXEC);
-assign compute_done = (state == DONE);
 
 // CSR CMD sync process:
 always @(posedge clk or negedge rst_n) begin
@@ -200,6 +199,7 @@ always_ff @(posedge clk or negedge rst_n) begin
 end
 
 always @* begin
+    compute_done = '0;
     casez (state)
         IDLE: begin
             if (csrcmd_valid & instgen_ready) begin
@@ -219,7 +219,13 @@ always @* begin
             end
         end
         DONE: begin
-            next_state = IDLE;
+            if (decoder_ready) begin
+                next_state = IDLE;
+                compute_done = '1;
+            end
+            else begin
+                next_state = DONE;
+            end
         end
         default: 
             next_state = IDLE;

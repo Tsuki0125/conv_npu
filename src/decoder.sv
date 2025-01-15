@@ -25,6 +25,7 @@ module decoder (
     input inst_valid,
     output decoder_ready,
     // CU port
+    output reg [`DATA_RANGE] valid_pe_num,
     output reg [`PE_NUM-1:0] in_valid  ,
     output reg [`PE_NUM-1:0] out_en    ,
     output reg [`PE_NUM-1:0] calc_bias ,
@@ -168,7 +169,9 @@ always @(*) begin
             next_state = MAC;
         end
         MAC: begin
-            if (ch_cnt == feature_chin_r) begin
+            if ( ch_cnt == feature_chin_r - 1 
+                && row_cnt == kernel_sizeh_r - 1 
+                && col_cnt == kernel_sizew_r - 1 ) begin
                 if(has_bias) begin
                     next_state = BIAS;
                 end else if(has_relu) begin
@@ -224,7 +227,7 @@ always @(posedge clk or negedge rst_n) begin
         out_en        <= '0;
         calc_bias     <= '0;
         calc_relu     <= '0;
-        flush         <= '0;    
+        flush         <= '0;   
     end
     else begin
         case (state)
@@ -290,6 +293,20 @@ always @(posedge clk or negedge rst_n) begin
     end
 end
 
+////////////////////////////////
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        valid_pe_num <= '0;
+    end
+    else if (feature_chout_r < `PE_NUM) begin
+        valid_pe_num <= feature_chout_r;
+    end
+    else begin
+        valid_pe_num <= `PE_NUM;
+    end
+end
+
+/// assigns
 assign decoder_ready = (state == IDLE);
 assign which_slot = kernel_baseaddr_r[`KRAM_ADDR_WIDTH-1];
 // BRAM addr

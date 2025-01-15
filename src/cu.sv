@@ -5,6 +5,7 @@ module cu (
     input [`DATA_RANGE] kernel_data  [`PE_NUM-1:0],
     input [`DATA_RANGE] feature_data,
     // decoder ports
+    input [`DATA_RANGE] valid_pe_num,
     input [`PE_NUM-1:0] in_valid  ,
     input [`PE_NUM-1:0] out_en    ,
     input [`PE_NUM-1:0] calc_bias ,
@@ -26,6 +27,8 @@ module cu (
     localparam OUTPUT = 2'b01; 
     reg [31:0] counter;
     reg [1:0] state;
+    reg [`DATA_RANGE] local_ch_offset_r;
+    reg [`DATA_RANGE] local_valid_pe_num;
 
     // input reg sync (data from brams have been synced with the primitive reg)
     reg [`PE_NUM-1:0] in_valid_sync  ;
@@ -103,23 +106,33 @@ module cu (
             result_out <= '0;
             result_out_valid <= '0;
             wb_addr_r <= '0;
+            local_ch_offset_r <= '0;
+            local_valid_pe_num <= '0;
         end
         else begin
             case (state)
                 IDLE: begin
-                    wb_addr_r <= '0;
+                    wb_addr_r <= wb_baseaddr_sync;
                     if (|pe_out_valid) begin
                         for (int i = 0; i < `PE_NUM; i++) begin
                             result_r[i] <= pe_result[i];
                         end
                         counter <= 0;
                         state <= OUTPUT;
+                        local_ch_offset_r <= wb_ch_offset_sync;
+                        local_valid_pe_num <= valid_pe_num;
                     end
                 end
                 OUTPUT: begin
-                    if (counter < `PE_NUM) begin
+                    if (counter == 0) begin
                         result_out <= result_r[counter];
-                        wb_addr_r  <= wb_baseaddr_sync + wb_ch_offset_sync * counter;
+                        wb_addr_r  <= wb_addr_r;
+                        result_out_valid <= 1;
+                        counter <= counter + 1;
+                    end
+                    else if (counter < local_valid_pe_num) begin
+                        result_out <= result_r[counter];
+                        wb_addr_r  <= wb_addr_r + local_ch_offset_r;
                         result_out_valid <= 1;
                         counter <= counter + 1;
                     end

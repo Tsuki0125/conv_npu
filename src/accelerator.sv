@@ -123,6 +123,7 @@ wire decoder_ready;
 wire [`FRAM_ADDR_RANGE]   stride_wb_baseaddr;
 wire [`DATA_RANGE]        stride_wb_ch_offset;
 //#################  decoder  ###################
+wire  [`DATA_RANGE] valid_pe_num;
 wire  [`PE_NUM-1:0] in_valid  ;
 wire  [`PE_NUM-1:0] out_en    ;
 wire  [`PE_NUM-1:0] calc_bias ;
@@ -292,6 +293,7 @@ decoder u_decoder(
 	.inst_valid			(inst_valid),
 	.decoder_ready		(decoder_ready),
 	// cu port
+	.valid_pe_num		(valid_pe_num),
 	.in_valid			(in_valid),
 	.out_en				(out_en),
 	.calc_bias			(calc_bias),
@@ -315,6 +317,7 @@ cu  u_cu(
     .kernel_data    (kernel_data),
     .feature_data   (feature_data),
     // decoder port
+	.valid_pe_num	(valid_pe_num),
     .in_valid       (in_valid),
     .out_en         (out_en),
     .calc_bias      (calc_bias),

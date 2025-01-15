@@ -95,7 +95,7 @@ normal_write(32'h40000014, 32'h00000003);
 normal_write(32'h40000018, 32'h00000010);
 normal_write(32'h4000001C, 32'h44010000);
 normal_write(32'h40000020, 32'd49);
-normal_write(32'h40000024, 32'd9);
+normal_write(32'h40000024, 32'd15);
 #500;
 normal_read(32'h40000004);
 normal_read(32'h40000008);
