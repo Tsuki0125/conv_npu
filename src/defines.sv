@@ -1,5 +1,5 @@
 // simulation defines
-`timescale 1ps/1ps
+`timescale 1ns/1ps
 
 // parameters in SOC
 `define XLEN 32

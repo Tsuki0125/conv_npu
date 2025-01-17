@@ -32,7 +32,9 @@ module cu (
     reg [`DATA_RANGE] local_ch_offset_r;
     reg [`DATA_RANGE] local_valid_pe_num;
     reg local_tlast;
-    // input reg sync (data from brams have been synced with the primitive reg)
+    // input reg sync
+    reg [`DATA_RANGE] kernel_data_sync  [`PE_NUM-1:0];
+    reg [`DATA_RANGE] feature_data_sync  ;
     reg [`PE_NUM-1:0] in_valid_sync  ;
     reg [`PE_NUM-1:0] out_en_sync    ;
     reg [`PE_NUM-1:0] calc_bias_sync ;
@@ -57,6 +59,10 @@ module cu (
     // sync process
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
+            for (int i = 0; i < `PE_NUM; i++) begin
+                kernel_data_sync[i] <= '0;
+            end
+            feature_data_sync <= '0;
             in_valid_sync  <= '0;
             out_en_sync    <= '0;
             calc_bias_sync <= '0;
@@ -67,6 +73,10 @@ module cu (
             wb_ch_offset_sync <= '0;
         end
         else begin
+            for (int i = 0; i < `PE_NUM; i++) begin
+                kernel_data_sync[i] <= kernel_data[i];
+            end
+            feature_data_sync <= feature_data;
             in_valid_sync  <= in_valid;
             out_en_sync    <= out_en;
             calc_bias_sync <= calc_bias;
@@ -83,16 +93,19 @@ module cu (
     generate
         for (i = 0; i < `PE_NUM; i = i + 1) begin : pe_array
             pe u_pe (
-                .x(feature_data),
-                .weight(kernel_data[i]),
+                // pe inputs
+                .x(feature_data_sync),
+                .weight(kernel_data_sync[i]),
                 .in_valid(in_valid_sync[i]),
                 .flush(flush_sync),
                 .out_en(out_en_sync[i]),
                 .calc_bias(calc_bias_sync[i]),
                 .calc_relu(calc_relu_sync[i]),
+                // pe outputs
                 .result_out(pe_result[i]),
                 .out_valid_r(pe_out_valid[i]),
                 .illegal_uop(pe_illegal_uop[i]),
+                ///////////////
                 .clk(clk),
                 .rst_n(rst_n)
             );

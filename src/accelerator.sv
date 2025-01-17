@@ -218,7 +218,7 @@ bram_bank_mux #(
 	.bram_en	(frambank_en0),
 	.bram_rdata	(frambank_rdata0)
 );
-//####################  kernel sram PORTB  ###################
+//####################  kernel sram PORTA  ###################
 bram_bank_mux #(
 	.ADDR_WIDTH			(`KRAM_ADDR_WIDTH),
 	.DATA_WIDTH			(`DATA_WIDTH),
@@ -357,7 +357,10 @@ fram_router u_fram_router (
 	.bram_we		(frambank_we1),
 	.bram_en 		(frambank_en1),
 	.bram_rdata		(frambank_rdata1),
-	.bank_conflict	(bank_conflict)
+	//////////////////
+	.bank_conflict	(bank_conflict),
+	.clk			(clk),
+	.rst_n			(rst_n)
 );
 
 kram_router u_kram_router (
