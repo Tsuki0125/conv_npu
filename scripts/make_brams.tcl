@@ -7,6 +7,10 @@ set_property -dict [list \
   CONFIG.Write_Width_A {32} \
 ] [get_ips bram_feature]
 
+set_property -dict [list \
+  CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+  CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+] [get_ips bram_feature]
 
 # config blk_mem_gen for kernel weights
 create_ip -name blk_mem_gen -vendor xilinx.com -library ip -version 8.4 -module_name bram_kernel
@@ -16,4 +20,7 @@ set_property -dict [list \
   CONFIG.Write_Width_A {32} \
 ] [get_ips bram_kernel]
 
-
+set_property -dict [list \
+  CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
+  CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
+] [get_ips bram_kernel]
