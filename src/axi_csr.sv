@@ -120,6 +120,9 @@
 	reg 		has_bias_r;
 	reg 		has_relu_r;
 	reg 		conv_mode_r;
+	reg 		running_r;
+	reg 		compute_done_r;
+	reg 		exception_r;		
 	reg  		start_r;	// auto-clear
 	reg [C_S_AXI_DATA_WIDTH-1:0]	kernel_baseaddr_r;
 	reg [C_S_AXI_DATA_WIDTH-1:0]	feature_baseaddr_r;
@@ -441,7 +444,7 @@
 	always @* begin
 		case (axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB])
 			4'd0:
-				S_AXI_RDATA = {kernel_size_r, stride_r, padding_r, has_bias_r, has_relu_r, conv_mode_r, 1'b0, running, compute_done, exception, start_r};
+				S_AXI_RDATA = {kernel_size_r, stride_r, padding_r, has_bias_r, has_relu_r, conv_mode_r, 1'b0, running_r, compute_done_r, exception_r, start_r};
 			4'd1:
 				S_AXI_RDATA = kernel_baseaddr_r;
 			4'd2:
@@ -466,6 +469,18 @@
 	end
 	
 	//-----------------------------------------------------------------------------------------------
+	always @(posedge S_AXI_ACLK or negedge S_AXI_ARESETN) begin
+		if (!S_AXI_ARESETN) begin
+			running_r          <= '0;
+			compute_done_r     <= '0;
+			exception_r        <= '0;
+		end
+        else begin
+            running_r          <= running;
+			compute_done_r     <= compute_done;
+			exception_r        <= exception;
+        end
+	end
 	//# OUTPUT ASSIGNMENT
 	assign kernel_size = kernel_size_r;
 	assign stride = stride_r;

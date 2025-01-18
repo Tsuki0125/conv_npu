@@ -1,4 +1,4 @@
-int weights = {
+int weights[] = {
 2,
 2,
 2,

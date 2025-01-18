@@ -1,4 +1,4 @@
-int feature_out = {
+int feature_out[] = {
 -58,
 -64,
 -113,

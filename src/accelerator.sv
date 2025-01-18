@@ -51,6 +51,7 @@ module accelerator #
 	output [`DATA_RANGE] kram_rdata,
 	// OUTPUT:interupt - compute done
 	output wire compute_done,
+	output wire exception,
 	//////////////////////////////////////////////////////
 	input clk,
 	input rst_n 
@@ -79,7 +80,7 @@ wire has_relu;
 wire conv_mode;  // 0 for conv1d; 1 for conv2d
 wire start;
 wire running;
-wire exception;
+
 //#################  feature BRAM PORTA  #################
 wire [`FRAM_BANKADDR_RANGE] frambank_addr0 [`FRAM_BANK_NUM-1:0];
 wire [`DATA_WIDTH-1:0] frambank_wdata0 [`FRAM_BANK_NUM-1:0];

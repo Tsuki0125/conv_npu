@@ -1,4 +1,4 @@
-int feature_in = {
+int feature_in[] = {
 2,
 3,
 4,
