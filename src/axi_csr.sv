@@ -250,7 +250,7 @@
 	      output_width_r 		<= '0;
 	      output_height_r 		<= '0;
 	    end 
-	  else if (S_AXI_WVALID)
+	  else if (S_AXI_WVALID && S_AXI_WREADY)
   	      begin
 	        case ( (S_AXI_AWVALID) ? S_AXI_AWADDR[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] : axi_awaddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] )
 	          4'h0: begin
