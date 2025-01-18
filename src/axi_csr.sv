@@ -472,15 +472,32 @@
 	always @(posedge S_AXI_ACLK or negedge S_AXI_ARESETN) begin
 		if (!S_AXI_ARESETN) begin
 			running_r          <= '0;
-			compute_done_r     <= '0;
-			exception_r        <= '0;
 		end
         else begin
             running_r          <= running;
+        end
+	end
+
+	always @(posedge S_AXI_ACLK or negedge S_AXI_ARESETN) begin
+		if (!S_AXI_ARESETN) begin
+			compute_done_r     <= '0;
+		end
+        else if ((!compute_done_r) || (compute_done_r & start_r)) begin
 			compute_done_r     <= compute_done;
+        end
+	end
+
+	always @(posedge S_AXI_ACLK or negedge S_AXI_ARESETN) begin
+		if (!S_AXI_ARESETN) begin
+			exception_r        <= '0;
+		end
+        else if ((!exception_r) || (exception_r & start_r)) begin
 			exception_r        <= exception;
         end
 	end
+
+
+
 	//# OUTPUT ASSIGNMENT
 	assign kernel_size = kernel_size_r;
 	assign stride = stride_r;
