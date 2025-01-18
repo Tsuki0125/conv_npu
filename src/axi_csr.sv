@@ -252,7 +252,7 @@
 	    end 
 	  else if (S_AXI_WVALID && S_AXI_WREADY)
   	      begin
-	        case ( (S_AXI_AWVALID) ? S_AXI_AWADDR[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] : axi_awaddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] )
+	        case (axi_awaddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB])
 	          4'h0: begin
 				start_r <= S_AXI_WDATA[0];
 				// BITS[4:1] READ ONLY
