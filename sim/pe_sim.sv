@@ -26,9 +26,13 @@ initial begin
     #20 rst_n = '1;
     #20;
 
-    normal_mac(32);  
+    normal_mac(32); 
     #100;
-    illegal_op(32);  
+    neg_x_and_relu(16);  
+    #100;
+    neg_w_and_relu(16);  
+    #100;
+    illegal_op(6);  
 
 end
 
@@ -59,7 +63,66 @@ task automatic normal_mac(input int num_mac);
             in_valid = '1;
         end
     end
-endtask 
+endtask //automatic
+
+
+task automatic neg_x_and_relu(input int num_mac);
+    x = -`XLEN'd1;
+    weight = `XLEN'd1;
+    in_valid = '0;
+    flush = '0;
+    out_en = '0;
+    calc_bias = '0;
+    calc_relu = '0;
+    for ( int i=0; i<=num_mac+2; i++) begin
+        @(negedge clk); //wait for clk negedge
+        if (i==num_mac+2) begin
+            flush = '1;
+        end
+        else if (i==num_mac+1) begin
+            in_valid = '0;
+            calc_bias = '0;
+            calc_relu = '1;
+            out_en = '1;
+        end
+        else if (i==num_mac) begin
+            in_valid = '1;
+            calc_bias = '1;
+        end
+        else begin
+            in_valid = '1;
+        end
+    end
+endtask //automatic
+
+task automatic neg_w_and_relu(input int num_mac);
+    x = `XLEN'd1;
+    weight = -`XLEN'd1;
+    in_valid = '0;
+    flush = '0;
+    out_en = '0;
+    calc_bias = '0;
+    calc_relu = '0;
+    for ( int i=0; i<=num_mac+2; i++) begin
+        @(negedge clk); //wait for clk negedge
+        if (i==num_mac+2) begin
+            flush = '1;
+        end
+        else if (i==num_mac+1) begin
+            in_valid = '0;
+            calc_bias = '0;
+            calc_relu = '1;
+            out_en = '1;
+        end
+        else if (i==num_mac) begin
+            in_valid = '1;
+            calc_bias = '1;
+        end
+        else begin
+            in_valid = '1;
+        end
+    end
+endtask //automatic
 
 task automatic illegal_op(input int num_mac);
     x = `XLEN'd1;
@@ -83,7 +146,7 @@ task automatic illegal_op(input int num_mac);
             in_valid = '1;
         end
     end
-endtask
+endtask //automatic
 
 pe DUT(.*);
 

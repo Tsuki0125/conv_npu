@@ -1,5 +1,44 @@
 `include "defines.sv"
-
+/*
+module instgen (
+    // csr port
+    input [`ADDR_RANGE] feature_baseaddr,
+    input [`ADDR_RANGE] kernel_baseaddr,
+    input [`DATA_RANGE] feature_width,
+    input [`DATA_RANGE] feature_height,
+    input [`DATA_RANGE] feature_chin,
+    input [`DATA_RANGE] feature_chout,
+    input [7:0] kernel_sizeh,
+    input [7:0] kernel_sizew,
+    input has_bias,
+    input has_relu,
+    input [7:0] stride,
+    input [`ADDR_RANGE] output_baseaddr,
+    input [`DATA_RANGE] output_width,
+    input [`DATA_RANGE] output_height,
+    input csrcmd_valid,
+    output instgen_ready,
+    // decoder port
+    output reg [`FRAM_ADDR_RANGE]   stride_feature_baseaddr,
+    output reg [`KRAM_ADDR_RANGE]   stride_kernel_baseaddr,
+    output reg [`DATA_RANGE]        stride_feature_chin,
+    output reg [`DATA_RANGE]        stride_feature_chout,
+    output reg [`DATA_RANGE]        stride_feature_width,
+    output reg [`DATA_RANGE]        stride_feature_height,
+    output reg [7:0]                stride_kernel_sizeh,
+    output reg [7:0]                stride_kernel_sizew,
+    output reg                      stride_has_bias,
+    output reg                      stride_has_relu,
+    output reg [`FRAM_ADDR_RANGE]   stride_wb_baseaddr,
+    output reg [`DATA_RANGE]        stride_wb_ch_offset,
+    output inst_valid,
+    output reg tlast,
+    input  decoder_ready,
+    //////////////////////
+    input wire clk,
+    input wire rst_n
+);
+*/
 module instgen_tb;
 
     // Parameters
@@ -15,20 +54,16 @@ module instgen_tb;
     reg [DATA_WIDTH-1:0] feature_height;
     reg [DATA_WIDTH-1:0] feature_chin;
     reg [DATA_WIDTH-1:0] feature_chout;
-    reg [DATA_WIDTH-1:0] kernel_sizeh;
-    reg [DATA_WIDTH-1:0] kernel_sizew;
+    reg [7:0] kernel_sizeh;
+    reg [7:0] kernel_sizew;
     reg has_bias;
     reg has_relu;
-    reg [DATA_WIDTH-1:0] stride;
+    reg [7:0] stride;
     reg [ADDR_WIDTH-1:0] output_baseaddr;
     reg [DATA_WIDTH-1:0] output_width;
     reg [DATA_WIDTH-1:0] output_height;
     reg csrcmd_valid;
     wire instgen_ready;
-    wire inst_valid;
-    reg decoder_ready;
-    wire conv_complete;
-
     // Outputs
     wire [`FRAM_ADDR_RANGE] stride_feature_baseaddr;
     wire [`KRAM_ADDR_RANGE] stride_kernel_baseaddr;
@@ -36,49 +71,18 @@ module instgen_tb;
     wire [DATA_WIDTH-1:0] stride_feature_chout;
     wire [DATA_WIDTH-1:0] stride_feature_width;
     wire [DATA_WIDTH-1:0] stride_feature_height;
-    wire [DATA_WIDTH-1:0] stride_kernel_sizeh;
-    wire [DATA_WIDTH-1:0] stride_kernel_sizew;
+    wire [7:0] stride_kernel_sizeh;
+    wire [7:0] stride_kernel_sizew;
     wire stride_has_bias;
     wire stride_has_relu;
     wire [`FRAM_ADDR_RANGE] stride_wb_baseaddr;
     wire [DATA_WIDTH-1:0] stride_wb_ch_offset;
+    wire inst_valid;
+    wire tlast;
+    reg decoder_ready;
 
     // Instantiate the DUT (Device Under Test)
-    instgen dut (
-        .clk(clk),
-        .rst_n(rst_n),
-        .feature_baseaddr(feature_baseaddr),
-        .kernel_baseaddr(kernel_baseaddr),
-        .feature_width(feature_width),
-        .feature_height(feature_height),
-        .feature_chin(feature_chin),
-        .feature_chout(feature_chout),
-        .kernel_sizeh(kernel_sizeh),
-        .kernel_sizew(kernel_sizew),
-        .has_bias(has_bias),
-        .has_relu(has_relu),
-        .stride(stride),
-        .output_baseaddr(output_baseaddr),
-        .output_width(output_width),
-        .output_height(output_height),
-        .csrcmd_valid(csrcmd_valid),
-        .instgen_ready(instgen_ready),
-        .inst_valid(inst_valid),
-        .decoder_ready(decoder_ready),
-        .conv_complete(conv_complete),
-        .stride_feature_baseaddr(stride_feature_baseaddr),
-        .stride_kernel_baseaddr(stride_kernel_baseaddr),
-        .stride_feature_chin(stride_feature_chin),
-        .stride_feature_chout(stride_feature_chout),
-        .stride_feature_width(stride_feature_width),
-        .stride_feature_height(stride_feature_height),
-        .stride_kernel_sizeh(stride_kernel_sizeh),
-        .stride_kernel_sizew(stride_kernel_sizew),
-        .stride_has_bias(stride_has_bias),
-        .stride_has_relu(stride_has_relu),
-        .stride_wb_baseaddr(stride_wb_baseaddr),
-        .stride_wb_ch_offset(stride_wb_ch_offset)
-    );
+    instgen dut (.*);
 
     // Clock generation
     always #5 clk = ~clk;
@@ -90,18 +94,18 @@ module instgen_tb;
         rst_n = 0;
         feature_baseaddr = 32'h00000000;
         kernel_baseaddr = 32'h00000000;
-        feature_width = 32'd28;
-        feature_height = 32'd28;
+        feature_width = 32'd20;
+        feature_height = 32'd10;
         feature_chin = 32'd3;
-        feature_chout = 32'd64;
-        kernel_sizeh = 32'd3;
-        kernel_sizew = 32'd3;
+        feature_chout = 32'd32;
+        kernel_sizeh = 3;
+        kernel_sizew = 3;
         has_bias = 1;
         has_relu = 1;
-        stride = 32'd1;
+        stride = 1;
         output_baseaddr = `FRAM_ADDR_WIDTH'h00010000;
-        output_width = 32'd26;
-        output_height = 32'd26;
+        output_width = 32'd18;
+        output_height = 32'd8;
         csrcmd_valid = 0;
         decoder_ready = 0;
 
@@ -111,18 +115,14 @@ module instgen_tb;
         // Apply test vectors
         #10 csrcmd_valid = 1;
         #10 csrcmd_valid = 0;
-        decoder_ready = 1;
 
-        // Wait for the completion
-        wait(conv_complete);
+        repeat (144) begin
+            decoder_ready = 1;
+            #100;
+        end
 
         // Finish the simulation
         #600 $finish;
-    end
-
-    // Monitor signals
-    initial begin
-        $monitor("Time: %0t, State: %0d, conv_complete: %0b", $time, dut.state, conv_complete);
     end
 
 endmodule
