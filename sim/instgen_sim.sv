@@ -102,7 +102,7 @@ module instgen_tb;
         kernel_sizew = 3;
         has_bias = 1;
         has_relu = 1;
-        stride = 1;
+        stride = 2;
         output_baseaddr = `FRAM_ADDR_WIDTH'h00010000;
         output_width = 32'd18;
         output_height = 32'd8;
@@ -117,8 +117,14 @@ module instgen_tb;
         #10 csrcmd_valid = 0;
 
         repeat (144) begin
+            @(posedge clk);
+            #1;
             decoder_ready = 1;
-            #100;
+            wait(decoder_ready & inst_valid);
+            @(posedge clk);
+            #1;
+            decoder_ready = 0;
+            #50;
         end
 
         // Finish the simulation

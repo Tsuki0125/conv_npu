@@ -1,5 +1,59 @@
 `include "defines.sv"
+/*
+module axi_csr #
+	(
+		// Width of S_AXI data bus
+		parameter integer C_S_AXI_DATA_WIDTH	= `DATA_WIDTH,
+		// Width of S_AXI address bus
+		parameter integer C_S_AXI_ADDR_WIDTH	= `CSR_ADDR_WIDTH
+	)
+	(
+		//-----------------------------------------------------------------------------------------------
+		output wire [7:0] kernel_size, 	
+		output wire [7:0] stride, 		
+		output wire [7:0] padding, 	
+		output wire has_bias,
+		output wire has_relu,
+		output wire conv_mode,
+		output wire start,
+		output wire [`DATA_RANGE] kernel_baseaddr,
+		output wire [`DATA_RANGE] feature_baseaddr,
+		output wire [`DATA_RANGE] feature_width,
+		output wire [`DATA_RANGE] feature_height,
+		output wire [`DATA_RANGE] feature_chin,
+		output wire [`DATA_RANGE] feature_chout,
+		output wire [`DATA_RANGE] output_baseaddr,
+		output wire [`DATA_RANGE] output_width,
+		output wire [`DATA_RANGE] output_height,
+		//###############################################################################################
+		input wire running,
+		input wire compute_done,
+		input wire exception,
+		//-----------------------------------------------------------------------------------------------
+		input wire  S_AXI_ACLK,
+		input wire  S_AXI_ARESETN,
+		input wire [C_S_AXI_ADDR_WIDTH-1 : 0] S_AXI_AWADDR,
+		input wire [2 : 0] S_AXI_AWPROT,
+		input wire  S_AXI_AWVALID,
+		output wire  S_AXI_AWREADY,
+		input wire [C_S_AXI_DATA_WIDTH-1 : 0] S_AXI_WDATA,
+		input wire [(C_S_AXI_DATA_WIDTH/8)-1 : 0] S_AXI_WSTRB,
+		input wire  S_AXI_WVALID,
+		output wire  S_AXI_WREADY,
+		output wire [1 : 0] S_AXI_BRESP,
+		output wire  S_AXI_BVALID,
+		input wire  S_AXI_BREADY,
+		input wire [C_S_AXI_ADDR_WIDTH-1 : 0] S_AXI_ARADDR,
+		input wire [2 : 0] S_AXI_ARPROT,
+		input wire  S_AXI_ARVALID,
+		output wire  S_AXI_ARREADY,
+		output reg [C_S_AXI_DATA_WIDTH-1 : 0] S_AXI_RDATA,
+		output wire [1 : 0] S_AXI_RRESP,
+		output wire  S_AXI_RVALID,
+		input wire  S_AXI_RREADY
+	);
 
+*/
 module axi_csr_sim;
 parameter integer C_S_AXI_DATA_WIDTH	= `DATA_WIDTH;
 parameter integer C_S_AXI_ADDR_WIDTH	= `CSR_ADDR_WIDTH;
